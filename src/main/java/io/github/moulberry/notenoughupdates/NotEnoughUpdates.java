@@ -186,7 +186,7 @@ public class NotEnoughUpdates {
 
 		ItemCustomizeManager.loadCustomization(new File(neuDir, "itemCustomization.json"));
 		StorageManager.getInstance().loadConfig(new File(neuDir, "storageItems.json"));
-		FairySouls.load(new File(neuDir, "collected_fairy_souls.json"), gson);
+		FairySouls.getInstance().loadFoundSoulsForAllProfiles(new File(neuDir, "collected_fairy_souls.json"), gson);
 		PetInfoOverlay.loadConfig(new File(neuDir, "petCache.json"));
 		SlotLocking.getInstance().loadConfig(new File(neuDir, "slotLocking.json"));
 		ItemPriceInformation.init(new File(neuDir, "auctionable_items.json"), gson);
@@ -208,7 +208,7 @@ public class NotEnoughUpdates {
 		MinecraftForge.EVENT_BUS.register(new DungeonMap());
 		MinecraftForge.EVENT_BUS.register(new SunTzu());
 		MinecraftForge.EVENT_BUS.register(new MiningStuff());
-		MinecraftForge.EVENT_BUS.register(new FairySouls());
+		MinecraftForge.EVENT_BUS.register(FairySouls.getInstance());
 		MinecraftForge.EVENT_BUS.register(new CrystalOverlay());
 		MinecraftForge.EVENT_BUS.register(new ItemCooldowns());
 		MinecraftForge.EVENT_BUS.register(new DwarvenMinesWaypoints());
@@ -285,7 +285,7 @@ public class NotEnoughUpdates {
 		} catch (Exception ignored) {
 		}
 		try {
-			FairySouls.save(new File(neuDir, "collected_fairy_souls.json"), gson);
+			FairySouls.getInstance().saveFoundSoulsForAllProfiles(new File(neuDir, "collected_fairy_souls.json"), gson);
 		} catch (Exception ignored) {
 		}
 		try {

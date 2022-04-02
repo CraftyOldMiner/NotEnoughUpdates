@@ -36,8 +36,17 @@ public class Misc {
 	public boolean fariySoulAccordion = false;
 	@Expose
 	@ConfigOption(
-		name = "Fairy Souls Finder",
-		desc = "Shows waypoints to fairy souls (/neusouls)"
+		name = "Track Fairy Souls",
+		desc = "Tracks which fairy souls, must be enabled to show waypoints (requires lobby change to take effect)"
+	)
+	@ConfigEditorBoolean
+	@ConfigAccordionId(id = 0)
+	public boolean trackFairySouls = true;
+
+	@Expose
+	@ConfigOption(
+		name = "Show Waypoints",
+		desc = "Shows waypoints to fairy souls"
 	)
 	@ConfigEditorBoolean
 	@ConfigAccordionId(id = 0)
@@ -46,7 +55,7 @@ public class Misc {
 	@Expose
 	@ConfigOption(
 		name = "Clear Fairy Souls",
-		desc = "Clears waypoints to fairy souls (/neusouls clear)"
+		desc = "Clears waypoints to fairy souls"
 	)
 	@ConfigEditorButton(
 		runnableId = 16,
@@ -58,7 +67,7 @@ public class Misc {
 	@Expose
 	@ConfigOption(
 		name = "Unclear Fairy Souls",
-		desc = "Shows all waypoints to fairy souls (/neusouls unclear)"
+		desc = "Shows all waypoints to fairy souls"
 	)
 	@ConfigEditorButton(
 		runnableId = 17,
