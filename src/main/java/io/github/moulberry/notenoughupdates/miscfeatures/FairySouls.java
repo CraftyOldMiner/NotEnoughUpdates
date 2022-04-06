@@ -82,9 +82,6 @@ public class FairySouls {
 
 		allSoulsInCurrentLocation = loadLocationFairySoulsFromConfig(currentLocation);
 		if (allSoulsInCurrentLocation == null) {
-			print(EnumChatFormatting.RED + "Could not load fairy souls for current location from config");
-			trackSouls = false;
-			showSouls = false;
 			return;
 		}
 
@@ -94,12 +91,14 @@ public class FairySouls {
 	}
 
 	private void refreshMissingSoulInfo(boolean force) {
+		if (allSoulsInCurrentLocation == null) return;
+
 		BlockPos currentPlayerPos = Minecraft.getMinecraft().thePlayer.getPosition();
 		if (lastPlayerPos.equals(currentPlayerPos) && !force) {
 			return;
 		}
-
 		lastPlayerPos = currentPlayerPos;
+
 		missingSoulsDistanceSqMap.clear();
 		for (int i = 0; i < allSoulsInCurrentLocation.size(); i++) {
 			if (foundSoulsInLocation.contains(i)) {
@@ -109,7 +108,6 @@ public class FairySouls {
 			double distSq = pos.distanceSq(lastPlayerPos);
 			missingSoulsDistanceSqMap.put(distSq, pos);
 		}
-
 		closestMissingSouls.clear();
 		if (missingSoulsDistanceSqMap.isEmpty()) {
 			return;
@@ -328,7 +326,7 @@ public class FairySouls {
 	}
 
 	public void tick() {
-		if (!trackSouls || !showSouls) return;
+		if (!trackSouls) return;
 		String location = SBInfo.getInstance().getLocation();
 		if (location == null || location.isEmpty()) return;
 
