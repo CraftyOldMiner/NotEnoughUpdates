@@ -331,6 +331,7 @@ public class CrystalWishingCompassSolver {
 				}
 			}
 		} catch (Exception e) {
+			// TODO: null check on mc.thePlayer
 			mc.thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.RED +
 				"[NEU] Exception while calculating wishing compass solution - see log for details"));
 			e.printStackTrace();

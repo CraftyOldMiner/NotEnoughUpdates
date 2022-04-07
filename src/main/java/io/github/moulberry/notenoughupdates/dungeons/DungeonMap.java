@@ -43,11 +43,16 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.*;
+import javax.imageio.ImageIO;
 
 public class DungeonMap {
 	private static final ResourceLocation GREEN_CHECK = new ResourceLocation(
@@ -97,6 +102,8 @@ public class DungeonMap {
 	private static final ResourceLocation CORNER_BROWN = new ResourceLocation(
 		"notenoughupdates:dungeon_map/corners_default/brown_corner.png");
 
+	private static final int NETHER_STAR_ITEM_ID = 399;
+
 	private final HashMap<RoomOffset, Room> roomMap = new HashMap<>();
 	private Color[][] colourMap = new Color[128][128];
 	private int startRoomX = -1;
@@ -116,6 +123,18 @@ public class DungeonMap {
 	private final HashMap<String, Integer> playerIdMap = new HashMap<>();
 
 	private final Map<String, ResourceLocation> playerSkinMap = new HashMap<>();
+
+	private static boolean saveMap = false;
+	private static boolean searchForPlayersOverride = true;
+
+	public static void setSaveMap(boolean saveMap) {
+		DungeonMap.saveMap = saveMap;
+	}
+
+	public static boolean toggleSearchForPlayers() {
+		DungeonMap.searchForPlayersOverride = !searchForPlayersOverride;
+		return DungeonMap.searchForPlayersOverride;
+	}
 
 	private static class RoomOffset {
 		int x;
@@ -1100,8 +1119,13 @@ public class DungeonMap {
 		public int hashCode() {
 			return Objects.hash(roomOffsetX, connOffsetX, roomOffsetY, connOffsetY, rotation);
 		}
-	}
 
+		@Override
+		public String toString() {
+			return String.format("roomOffsetX=%f roomOffsetY=%f connOffsetX=%f connOffsetY=%f rotation=%f",
+				roomOffsetX, roomOffsetY, connOffsetX, connOffsetY, rotation);
+		}
+	}
 	private boolean isFloorOne = false;
 	private boolean failMap = false;
 	private long lastClearCache = 0;
@@ -1119,7 +1143,7 @@ public class DungeonMap {
 		boolean searchForPlayers = false;
 		if (System.currentTimeMillis() - lastClearCache > 1000) {
 			roomMap.clear();
-			searchForPlayers = true;
+			searchForPlayers = searchForPlayersOverride;
 			startRoomX = -1;
 			startRoomY = -1;
 			connectorSize = -1;
@@ -1130,6 +1154,7 @@ public class DungeonMap {
 			lastClearCache = System.currentTimeMillis();
 
 			isFloorOne = false;
+
 			Scoreboard scoreboard = Minecraft.getMinecraft().thePlayer.getWorldScoreboard();
 
 			ScoreObjective sidebarObjective = scoreboard.getObjectiveInDisplaySlot(1);
@@ -1497,145 +1522,156 @@ public class DungeonMap {
 
 	@SubscribeEvent
 	public void onWorldChange(WorldEvent.Load event) {
+		openLog();
 		colourMap = null;
+	}
+
+	private static FileWriter logWriter;
+	private void openLog() {
+		try {
+			if (logWriter == null) {
+				logWriter = new FileWriter("logdata.log");
+			}
+		} catch (IOException e) {
+			// don't do anything
+		}
+	}
+
+	private void log(String logLine) {
+		try {
+			logWriter.write(logLine);
+		} catch (IOException e) {
+			// don't do anything
+		}
 	}
 
 	@SubscribeEvent
 	public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
 		if (!NotEnoughUpdates.INSTANCE.hasSkyblockScoreboard()) return;
-		if (event.type == RenderGameOverlayEvent.ElementType.ALL) {
-			if (!NotEnoughUpdates.INSTANCE.config.dungeonMap.dmEnable) return;
+		if (event.type != RenderGameOverlayEvent.ElementType.ALL ||
+			!NotEnoughUpdates.INSTANCE.config.dungeonMap.dmEnable) {
+			return;
+		}
 
-			if (Minecraft.getMinecraft().gameSettings.showDebugInfo ||
-				(Minecraft.getMinecraft().gameSettings.keyBindPlayerList.isKeyDown() &&
-					(!Minecraft.getMinecraft().isIntegratedServerRunning() ||
-						Minecraft.getMinecraft().thePlayer.sendQueue.getPlayerInfoMap().size() > 1))) {
-				return;
-			}
+		if (Minecraft.getMinecraft().gameSettings.showDebugInfo ||
+			(Minecraft.getMinecraft().gameSettings.keyBindPlayerList.isKeyDown() &&
+				(!Minecraft.getMinecraft().isIntegratedServerRunning() ||
+					Minecraft.getMinecraft().thePlayer.sendQueue.getPlayerInfoMap().size() > 1))) {
+			return;
+		}
 
-			ItemStack stack = Minecraft.getMinecraft().thePlayer.inventory.mainInventory[8];
-			boolean holdingBow = stack != null && stack.getItem() == Items.arrow && colourMap != null;
-			if (holdingBow || (stack != null && stack.getItem() instanceof ItemMap)) {
-				Map<String, Vec4b> decorations = null;
+		ItemStack stack = Minecraft.getMinecraft().thePlayer.inventory.mainInventory[8];
+		if (stack == null) {
+			return;
+		}
 
-				Color[][] colourMap = new Color[128][128];
-				if (holdingBow) {
-					for (int x = 0; x < 128; x++) {
-						for (int y = 0; y < 128; y++) {
-							if (this.colourMap[x][y] != null) {
-								colourMap[x][y] = this.colourMap[x][y];
-							} else {
-								colourMap[x][y] = new Color(0, true);
-							}
-						}
+		if (Item.getIdFromItem(stack.getItem()) == NETHER_STAR_ITEM_ID) {
+			//This should clear the map if you're in the dungeon boss room
+			//so when you're holding a bow it doesn't show the map anymore
+			this.colourMap = null;
+		}
+
+		boolean holdingBow = stack.getItem() == Items.arrow && colourMap != null;
+		if (!holdingBow & !(stack.getItem() instanceof ItemMap)) {
+			return;
+		}
+
+		Map<String, Vec4b> decorations = null;
+		Color[][] colourMap = new Color[128][128];
+
+		if (holdingBow) {
+			// Keep the previous colourMap, set to all black when there is no previous one
+			for (int x = 0; x < 128; x++) {
+				for (int y = 0; y < 128; y++) {
+					if (this.colourMap[x][y] != null) {
+						colourMap[x][y] = this.colourMap[x][y];
+					} else {
+						colourMap[x][y] = new Color(0, true);
 					}
+				}
+			}
+		} else {
+			ItemMap map = (ItemMap) stack.getItem();
+			MapData mapData = map.getMapData(stack, Minecraft.getMinecraft().theWorld);
+
+			if (mapData == null) return;
+
+			decorations = mapData.mapDecorations;
+			BufferedImage bufferedimage = null;
+			if (saveMap) {
+				bufferedimage = new BufferedImage(128, 128, 2);
+			}
+			for (int i = 0; i < 16384; ++i) {
+				int x = i % 128;
+				int y = i / 128;
+
+				int j = mapData.colors[i] & 255;
+
+				int rgba;
+				Color c;
+				if (j < 4) {
+					// if i + y is odd, use alpha value of 24, otherwise 16
+					rgba = (i + i / 128 & 1) * 8 + 16 << 24;
 				} else {
-					ItemMap map = (ItemMap) stack.getItem();
-					MapData mapData = map.getMapData(stack, Minecraft.getMinecraft().theWorld);
-
-					if (mapData == null) return;
-
-					decorations = mapData.mapDecorations;
-
-					for (int i = 0; i < 16384; ++i) {
-						int x = i % 128;
-						int y = i / 128;
-
-						int j = mapData.colors[i] & 255;
-
-						Color c;
-						if (j / 4 == 0) {
-							c = new Color((i + i / 128 & 1) * 8 + 16 << 24, true);
-						} else {
-							c = new Color(MapColor.mapColorArray[j / 4].getMapColor(j & 3), true);
-						}
-
-						colourMap[x][y] = c;
-					}
+					rgba = MapColor.mapColorArray[j / 4].getMapColor(j & 3);
 				}
 
-				int roomSizeBlocks = 31;
-                /*List<Integer> dists = new ArrayList<>();
-                int currentBlockCount = 0;
-                for(int i=0; i<300; i++) {
-                    IBlockState state = Minecraft.getMinecraft().theWorld.getBlockState(new BlockPos(0, 99, i));
-                    if(state == null || state.getBlock() == Blocks.air) {
-                        if(currentBlockCount > 0) dists.add(currentBlockCount);
-                        currentBlockCount = 0;
-                    } else {
-                        currentBlockCount++;
-                    }
-                }
-                currentBlockCount = 0;
-                for(int i=0; i<300; i++) {
-                    IBlockState state = Minecraft.getMinecraft().theWorld.getBlockState(new BlockPos(i, 99, 0));
-                    if(state == null || state.getBlock() == Blocks.air) {
-                        if(currentBlockCount > 0) dists.add(currentBlockCount);
-                        currentBlockCount = 0;
-                    } else {
-                        currentBlockCount++;
-                    }
-                }
-                int count = 0;
-                int mostCommonDist = -1;
-                for(int dist : dists) {
-                    if(dist == mostCommonDist) {
-                        count++;
-                    } else {
-                        if(--count < 0) {
-                            count = 1;
-                            mostCommonDist = dist;
-                        }
-                    }
-                }
-                if(mostCommonDist > 31) roomSizeBlocks = mostCommonDist;*/
-
-				Set<String> actualPlayers = new HashSet<>();
-                /*for(EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
-                    if(player.getUniqueID().toString().charAt(14) == '4') {
-                        actualPlayers.add(player.getName());
-                        System.out.println(player.getName());
-
-                    }
-                }*/
-				int players = 0;
-				for (ScorePlayerTeam team : Minecraft.getMinecraft().thePlayer.getWorldScoreboard().getTeams()) {
-					if (team.getTeamName().startsWith("a") && team.getMembershipCollection().size() == 1) {
-						String playerName = Iterables.get(team.getMembershipCollection(), 0);
-						boolean foundPlayer = false;
-						for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
-							if (player.getName().equals(playerName) &&
-								(player == Minecraft.getMinecraft().thePlayer || !player.isPlayerSleeping())) {
-								actualPlayers.add(playerName);
-								foundPlayer = true;
-								break;
-							}
-						}
-						if (!foundPlayer) actualPlayers.add(playerName);
-						if (++players >= 6) break;
-					}
+				c = new Color(rgba, true);
+				colourMap[x][y] = c;
+				if (bufferedimage != null) {
+					bufferedimage.setRGB(x, y, rgba);
 				}
-
-				Position pos = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition;
-
-				int size = 80 + Math.round(40 * NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderSize);
-				ScaledResolution scaledResolution = Utils.pushGuiScale(2);
-				renderMap(
-					pos.getAbsX(scaledResolution, size / 2) + size / 2,
-					pos.getAbsY(scaledResolution, size / 2) + size / 2,
-					colourMap,
-					decorations,
-					roomSizeBlocks,
-					actualPlayers,
-					true,
-					event.partialTicks
-				);
-				Utils.pushGuiScale(-1);
-			} else if (stack != null && Item.getIdFromItem(stack.getItem()) == 399) {
-				//This should clear the map if you're in the dungeon boss room
-				//so when you're holding a bow it doesnt show the map anymore
-				this.colourMap = null;
 			}
+			if (bufferedimage != null) {
+				File dungeonMapFile = new File("dungeonMap.png");
+				try {
+					saveMap = false;
+					ImageIO.write(bufferedimage, "png", (File)dungeonMapFile);
+				} catch (IOException e) {
+					// Do nothing
+				}
+			}
+		}
+
+		int roomSizeBlocks = 31;
+		Set<String> actualPlayers = new HashSet<>();
+		int players = 0;
+		for (ScorePlayerTeam team : Minecraft.getMinecraft().thePlayer.getWorldScoreboard().getTeams()) {
+			if (team.getTeamName().startsWith("a") && team.getMembershipCollection().size() == 1) {
+				String playerName = Iterables.get(team.getMembershipCollection(), 0);
+				boolean foundPlayer = false;
+				for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
+					if (player.getName().equals(playerName) &&
+						(player == Minecraft.getMinecraft().thePlayer || !player.isPlayerSleeping())) {
+						actualPlayers.add(playerName);
+						foundPlayer = true;
+						break;
+					}
+				}
+				if (!foundPlayer) actualPlayers.add(playerName);
+				if (++players >= 6) break;
+			}
+		}
+
+		Position pos = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition;
+
+		int size = 80 + Math.round(40 * NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderSize);
+		ScaledResolution scaledResolution = Utils.pushGuiScale(2);
+		renderMap(
+			pos.getAbsX(scaledResolution, size / 2) + size / 2,
+			pos.getAbsY(scaledResolution, size / 2) + size / 2,
+			colourMap,
+			decorations,
+			roomSizeBlocks,
+			actualPlayers,
+			true,
+			event.partialTicks
+		);
+		Utils.pushGuiScale(-1);
+		try {
+			logWriter.flush();
+		} catch (IOException e) {
+			//nothing
 		}
 	}
 

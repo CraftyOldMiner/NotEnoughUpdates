@@ -29,6 +29,7 @@ import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.lwjgl.input.Keyboard;
 
@@ -402,6 +403,7 @@ public class ItemTooltipListener {
 						String levelStr = matcher.group("level");
 						if (levelStr == null) continue;
 						try {
+							// TODO: Use NumberUtils.isNumber() here
 							level = Integer.parseInt(levelStr);
 						} catch (Exception e) {
 							switch (levelStr) {

@@ -2,6 +2,7 @@ package io.github.moulberry.notenoughupdates.commands.dev;
 
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
 import io.github.moulberry.notenoughupdates.commands.ClientCommandBase;
+import io.github.moulberry.notenoughupdates.dungeons.DungeonMap;
 import io.github.moulberry.notenoughupdates.miscfeatures.CrystalMetalDetectorSolver;
 import io.github.moulberry.notenoughupdates.miscfeatures.CrystalWishingCompassSolver;
 import io.github.moulberry.notenoughupdates.options.customtypes.NEUDebugFlag;
@@ -16,11 +17,13 @@ public class DiagCommand extends ClientCommandBase {
 	}
 
 	private static final String USAGE_TEXT = EnumChatFormatting.WHITE +
-		"Usage: /neudiag <metal | wishing | debug>\n\n" +
+		"Usage: /neudiag <metal | wishing | dungeon | debug>\n\n" +
 		"/neudiag metal          Metal Detector Solver diagnostics\n" +
 		"  <no sub-command>           Show current solution diags\n" +
 		"  center=<off | on>          Disable / enable using center\n" +
 		"/neudiag wishing        Wishing Compass Solver diagnostics\n" +
+		"/neudiag dungeon        Wishing Compass Solver diagnostics\n" +
+		"  savemap                    Save a snapshot of the map\n" +
 		"/neudiag debug\n" +
 		"  <no sub-command>           Show current flags\n" +
 		"  <enable | disable> <flag>  Enable/disable flag\n";
@@ -62,6 +65,22 @@ public class DiagCommand extends ClientCommandBase {
 				break;
 			case "wishing":
 				CrystalWishingCompassSolver.getInstance().logDiagnosticData(true);
+				break;
+			case "dungeon":
+				if (args.length != 2) return;
+				switch (args[1].toLowerCase()) {
+					case "savemap":
+						DungeonMap.setSaveMap(true);
+						break;
+					case "playersearch": // TODO: Remove this when the map is fixed
+						boolean newValue = DungeonMap.toggleSearchForPlayers();
+						sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW +
+							"Searching for players is now " + newValue));
+						break;
+					default:
+						sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Invalid command"));
+						return;
+				}
 				break;
 			case "debug":
 				if (args.length > 1) {
