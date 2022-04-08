@@ -37,7 +37,7 @@ public class Misc {
 	@Expose
 	@ConfigOption(
 		name = "Track Fairy Souls",
-		desc = "Tracks which fairy souls, must be enabled to show waypoints (requires lobby change to take effect)"
+		desc = "Track found fairy souls (Lobby change required to take effect)"
 	)
 	@ConfigEditorBoolean
 	@ConfigAccordionId(id = 0)
@@ -46,7 +46,7 @@ public class Misc {
 	@Expose
 	@ConfigOption(
 		name = "Show Waypoints",
-		desc = "Shows waypoints to fairy souls"
+		desc = "Shows waypoints to fairy souls (Requires fairy soul tracking)"
 	)
 	@ConfigEditorBoolean
 	@ConfigAccordionId(id = 0)
@@ -54,8 +54,8 @@ public class Misc {
 
 	@Expose
 	@ConfigOption(
-		name = "Clear Fairy Souls",
-		desc = "Clears waypoints to fairy souls"
+		name = "Mark All As Found",
+		desc = "Mark all fairy souls in current location as found"
 	)
 	@ConfigEditorButton(
 		runnableId = 16,
@@ -66,7 +66,7 @@ public class Misc {
 
 	@Expose
 	@ConfigOption(
-		name = "Unclear Fairy Souls",
+		name = "Mark All As Missing",
 		desc = "Shows all waypoints to fairy souls"
 	)
 	@ConfigEditorButton(
