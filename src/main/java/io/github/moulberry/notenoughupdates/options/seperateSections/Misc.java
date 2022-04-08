@@ -67,7 +67,7 @@ public class Misc {
 	@Expose
 	@ConfigOption(
 		name = "Mark All As Missing",
-		desc = "Shows all waypoints to fairy souls"
+		desc = "Mark all fairy souls in current location as missing"
 	)
 	@ConfigEditorButton(
 		runnableId = 17,
