@@ -205,7 +205,7 @@ public class NotEnoughUpdates {
 		MinecraftForge.EVENT_BUS.register(new CalendarOverlay());
 		MinecraftForge.EVENT_BUS.register(SBInfo.getInstance());
 		MinecraftForge.EVENT_BUS.register(CustomItemEffects.INSTANCE);
-		MinecraftForge.EVENT_BUS.register(new DungeonMap());
+		MinecraftForge.EVENT_BUS.register(DungeonMap.getInstance());
 		MinecraftForge.EVENT_BUS.register(new SunTzu());
 		MinecraftForge.EVENT_BUS.register(new MiningStuff());
 		MinecraftForge.EVENT_BUS.register(new FairySouls());
@@ -236,7 +236,6 @@ public class NotEnoughUpdates {
 		MinecraftForge.EVENT_BUS.register(new CalendarOverlay());
 		MinecraftForge.EVENT_BUS.register(SBInfo.getInstance());
 		MinecraftForge.EVENT_BUS.register(CustomItemEffects.INSTANCE);
-		MinecraftForge.EVENT_BUS.register(new DungeonMap());
 		MinecraftForge.EVENT_BUS.register(new SunTzu());
 		MinecraftForge.EVENT_BUS.register(new MiningStuff());
 		MinecraftForge.EVENT_BUS.register(new FairySouls());

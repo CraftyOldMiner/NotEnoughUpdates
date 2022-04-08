@@ -22,8 +22,9 @@ public class DiagCommand extends ClientCommandBase {
 		"  <no sub-command>           Show current solution diags\n" +
 		"  center=<off | on>          Disable / enable using center\n" +
 		"/neudiag wishing        Wishing Compass Solver diagnostics\n" +
-		"/neudiag dungeon        Wishing Compass Solver diagnostics\n" +
+		"/neudiag dmap           Dungeon Map diagnostics\n" +
 		"  savemap                    Save a snapshot of the map\n" +
+		"  playerpos                  Show player position data\n" +
 		"/neudiag debug\n" +
 		"  <no sub-command>           Show current flags\n" +
 		"  <enable | disable> <flag>  Enable/disable flag\n";
@@ -66,11 +67,14 @@ public class DiagCommand extends ClientCommandBase {
 			case "wishing":
 				CrystalWishingCompassSolver.getInstance().logDiagnosticData(true);
 				break;
-			case "dungeon":
+			case "dmap":
 				if (args.length != 2) return;
 				switch (args[1].toLowerCase()) {
 					case "savemap":
-						DungeonMap.setSaveMap(true);
+						DungeonMap.saveMap();
+						break;
+					case "playerpos":
+						DungeonMap.getInstance().showPlayerCoordinateData();
 						break;
 					default:
 						sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Invalid command"));

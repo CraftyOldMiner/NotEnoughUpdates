@@ -5,6 +5,8 @@ import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
 import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.core.config.Position;
+import io.github.moulberry.notenoughupdates.core.util.MiscUtils;
+import io.github.moulberry.notenoughupdates.core.util.StringUtils;
 import io.github.moulberry.notenoughupdates.util.NEUResourceManager;
 import io.github.moulberry.notenoughupdates.util.SpecialColour;
 import io.github.moulberry.notenoughupdates.util.Utils;
@@ -57,6 +59,7 @@ import java.util.*;
 import javax.imageio.ImageIO;
 
 public class DungeonMap {
+	private static DungeonMap instance = null;
 	private static final ResourceLocation GREEN_CHECK = new ResourceLocation(
 		"notenoughupdates:dungeon_map/green_check.png");
 	private static final ResourceLocation WHITE_CHECK = new ResourceLocation(
@@ -106,6 +109,7 @@ public class DungeonMap {
 
 	private static final int NETHER_STAR_ITEM_ID = 399;
 
+	private final DungeonMapData dungeonMapData = new DungeonMapData();
 	private final HashMap<RoomOffset, Room> roomMap = new HashMap<>();
 	private Color[][] colourMap = new Color[128][128];
 	private int startRoomX = -1;
@@ -125,11 +129,15 @@ public class DungeonMap {
 
 	private final Map<String, ResourceLocation> playerSkinMap = new HashMap<>();
 
-	private static boolean saveMap = false;
-	private static boolean searchForPlayersOverride = true;
+	public static DungeonMap getInstance() {
+		if (instance == null) {
+			instance = new DungeonMap();
+		}
+		return instance;
+	}
 
-	public static void setSaveMap(boolean saveMap) {
-		DungeonMap.saveMap = saveMap;
+	public static void saveMap() {
+		DungeonMap.getInstance().dungeonMapData.saveMapToPngFile("DungeonMap.png");
 	}
 
 	public void setMapDecorations(Map<String, Vec4b> mapDecorations) {
@@ -1143,7 +1151,7 @@ public class DungeonMap {
 		boolean searchForPlayers = false;
 		if (System.currentTimeMillis() - lastClearCache > 1000) {
 			roomMap.clear();
-			searchForPlayers = searchForPlayersOverride;
+			searchForPlayers = true;
 			startRoomX = -1;
 			startRoomY = -1;
 			connectorSize = -1;
@@ -1154,7 +1162,6 @@ public class DungeonMap {
 			lastClearCache = System.currentTimeMillis();
 
 			isFloorOne = false;
-
 			Scoreboard scoreboard = Minecraft.getMinecraft().thePlayer.getWorldScoreboard();
 
 			ScoreObjective sidebarObjective = scoreboard.getObjectiveInDisplaySlot(1);
@@ -1576,10 +1583,6 @@ public class DungeonMap {
 			if (mapData == null) return;
 
 			mapDecorations = mapData.mapDecorations;
-			BufferedImage bufferedimage = null;
-			if (saveMap) {
-				bufferedimage = new BufferedImage(128, 128, 2);
-			}
 			for (int i = 0; i < 16384; ++i) {
 				int x = i % 128;
 				int y = i / 128;
@@ -1597,18 +1600,6 @@ public class DungeonMap {
 
 				c = new Color(rgba, true);
 				colourMap[x][y] = c;
-				if (bufferedimage != null) {
-					bufferedimage.setRGB(x, y, rgba);
-				}
-			}
-			if (bufferedimage != null) {
-				File dungeonMapFile = new File("dungeonMap.png");
-				try {
-					saveMap = false;
-					ImageIO.write(bufferedimage, "png", (File)dungeonMapFile);
-				} catch (IOException e) {
-					// Do nothing
-				}
 			}
 		}
 
@@ -1703,24 +1694,113 @@ public class DungeonMap {
 	public void showPlayerCoordinateData() {
 		EntityPlayerSP player = Minecraft.getMinecraft().thePlayer;
 
-		player.addChatMessage(new ChatComponentText(
-			EnumChatFormatting.YELLOW + "Player X Y Coordinates : " +
-				EnumChatFormatting.WHITE + String.format("%f %f\n", player.posX, player.posY)));
+		StringBuilder sb = new StringBuilder();
+		sb.append(EnumChatFormatting.YELLOW + "Player X Z Coordinates : ");
+		sb.append(EnumChatFormatting.WHITE + String.format("%f %f\n", player.posX, player.posZ));
 
+		sb.append(EnumChatFormatting.YELLOW + "Player Map Decoration: ");
 		if (mapDecorations != null) {
 			Collection<Vec4b> decorations = mapDecorations.values();
 			for (Vec4b vec4b : decorations) {
 				byte id = vec4b.func_176110_a();
 				if (id != 1) continue;
 
-				Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
-					EnumChatFormatting.YELLOW + "Player Map Decoration: " +
-						EnumChatFormatting.WHITE + String.format("%d %d\n", vec4b.func_176112_b(), vec4b.func_176113_c())));
+				sb.append(EnumChatFormatting.WHITE + String.format("%d %d\n", vec4b.func_176112_b(), vec4b.func_176113_c()));
+				break;
 			}
 		} else {
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
-				EnumChatFormatting.YELLOW + "Player Map Decoration: " +
-					EnumChatFormatting.WHITE + "<NONE>"));
+			sb.append(EnumChatFormatting.WHITE + "<NONE>");
+		}
+
+		Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(sb.toString()));
+		MiscUtils.copyToClipboard(StringUtils.cleanColour(sb.toString()));
+	}
+
+	public static class DungeonMapData {
+		private static final int MAP_SIZE = 128;
+		private static final int TRANSPARENT = MapColor.airColor.colorValue; // 0
+		private static final int GREEN_CHECK_COLOR = MapColor.foliageColor.colorValue; // 7
+		private static final int GREEN_ROOM_COLOR = MapColor.foliageColor.colorValue; // 7
+		private static final int RED_X_COLOR = MapColor.tntColor.colorValue; // 4
+		private static final int WATCHER_ROOM = MapColor.tntColor.colorValue; // 4
+		private static final int WHITE_CHECK_COLOR = MapColor.snowColor.colorValue; // 8
+		private static final int TRAP_ROOM_COLOR = MapColor.adobeColor.colorValue; // 15
+		private static final int PUZZLE_ROOM_COLOR = MapColor.magentaColor.colorValue; // 16
+		private static final int MINI_BOSS_ROOM = MapColor.yellowColor.colorValue; // 18
+		private static final int FAIRY_ROOM = MapColor.pinkColor.colorValue; // 20
+		private static final int UNKNOWN_ROOM_COLOR = MapColor.grayColor.colorValue; // 21
+		private static final int QUESTION_MARK_COLOR = MapColor.blackColor.colorValue; // 29
+
+		public static final Color[] colorMappingTable = populateColorMappingTable();
+
+		private static Color[] populateColorMappingTable() {
+			Color[] mappingTable = new Color[MapColor.mapColorArray.length];
+			for (int i = 0; i < MapColor.mapColorArray.length; i++) {
+				mappingTable[i] = new Color(MapColor.mapColorArray[i / 4].getMapColor(i & 3), true);
+			}
+			return mappingTable;
+		}
+
+		private byte[] currentColorBytes = null;
+		private byte[] previousColorBytes = null;
+		Color[][] currentColorMap = null;
+		BufferedImage bufferedimage = null;
+
+		/**
+		 * Updates current colors used by other methods in this class, but only if new colors are different.
+		 * <p>
+		 * Also in-place updates the {@link Color} array returned by {@link DungeonMapData#getCurrentColorMap()}</code>.
+		 *
+		 * @param newColors An array of 16384 <code>MapColor</code> bytes. The lowest two bits of each byte
+		 *                  are alpha, the upper six are an index into {@link MapColor#mapColorArray}.
+		 * @return false if the new colors match the previous colors, true otherwise
+		 */
+		public boolean setCurrentColors(byte[] newColors) {
+			if (newColors.length != 16384) {
+				throw new IllegalArgumentException("unexpected color array length");
+			}
+
+			if (Arrays.equals(currentColorBytes, newColors)) {
+				return false;
+			}
+
+			previousColorBytes = currentColorBytes;
+			currentColorBytes = newColors.clone();
+			if (currentColorMap == null) {
+				currentColorMap = new Color[MAP_SIZE][MAP_SIZE];
+				bufferedimage = new BufferedImage(MAP_SIZE, MAP_SIZE, BufferedImage.TYPE_INT_ARGB);
+			}
+
+			for (int i = 0; i < MAP_SIZE * MAP_SIZE; ++i) {
+				int x = i % MAP_SIZE;
+				int y = i / MAP_SIZE;
+
+				int j = currentColorBytes[i] & 255;
+
+				currentColorMap[x][y] = colorMappingTable[j];
+				bufferedimage.setRGB(x, y, currentColorMap[x][y].getRGB());
+			}
+
+			return true;
+		}
+
+		public Color[][] getCurrentColorMap() {
+			if (currentColorBytes == null) {
+				throw new IllegalStateException("setCurrentColors must be called before getColorMap");
+			}
+
+			return currentColorMap;
+		}
+
+		public void saveMapToPngFile(String fileName) {
+			if (bufferedimage != null) {
+				File dungeonMapFile = new File(fileName);
+				try {
+					ImageIO.write(bufferedimage, "png", (File)dungeonMapFile);
+				} catch (IOException e) {
+					// Do nothing
+				}
+			}
 		}
 	}
 }
