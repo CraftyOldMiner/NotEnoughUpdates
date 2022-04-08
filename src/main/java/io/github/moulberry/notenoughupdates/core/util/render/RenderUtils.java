@@ -217,7 +217,6 @@ public class RenderUtils {
 		float r = ((rgb >> 16) & 0xFF) / 255f;
 		float g = ((rgb >> 8) & 0xFF) / 255f;
 		float b = (rgb & 0xFF) / 255f;
-
 		double d2 = time * 0.025D * -1.5D;
 		double d4 = 0.5D + Math.cos(d2 + 2.356194490192345D) * 0.2D;
 		double d5 = 0.5D + Math.sin(d2 + 2.356194490192345D) * 0.2D;
