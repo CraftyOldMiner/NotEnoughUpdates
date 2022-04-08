@@ -433,7 +433,8 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		players.add(Minecraft.getMinecraft().thePlayer.getName());
 		GlStateManager.color(1, 1, 1, 1);
 
-		demoMap.renderMap(guiLeft + 357, guiTop + 125, NotEnoughUpdates.INSTANCE.colourMap, decorations, 0,
+		demoMap.setMapDecorations(decorations);
+		demoMap.renderMap(guiLeft + 357, guiTop + 125, NotEnoughUpdates.INSTANCE.colourMap, 0,
 			players, false, partialTicks
 		);
 
@@ -582,11 +583,11 @@ public class GuiDungeonMapEditor extends GuiScreen {
 					NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition,
 					size, size, () -> {
 					ScaledResolution scaledResolution = Utils.pushGuiScale(2);
+					demoMap.setMapDecorations(decorations);
 					demoMap.renderMap(
 						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsX(scaledResolution, size) + size / 2,
 						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsY(scaledResolution, size) + size / 2,
 						NotEnoughUpdates.INSTANCE.colourMap,
-						decorations,
 						0,
 						players,
 						false,

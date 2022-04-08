@@ -11,6 +11,7 @@ import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
@@ -32,6 +33,8 @@ import net.minecraft.scoreboard.Score;
 import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Scoreboard;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.Matrix4f;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Vec4b;
@@ -46,7 +49,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -130,9 +132,8 @@ public class DungeonMap {
 		DungeonMap.saveMap = saveMap;
 	}
 
-	public static boolean toggleSearchForPlayers() {
-		DungeonMap.searchForPlayersOverride = !searchForPlayersOverride;
-		return DungeonMap.searchForPlayersOverride;
+	public void setMapDecorations(Map<String, Vec4b> mapDecorations) {
+		this.mapDecorations = mapDecorations;
 	}
 
 	private static class RoomOffset {
@@ -1324,35 +1325,6 @@ public class DungeonMap {
 						playerConnOffsetX -= startRoomX / (roomSize + connectorSize);
 						playerConnOffsetY -= startRoomY / (roomSize + connectorSize);
 
-
-						float mapDec1X = 0.0f;
-						float mapDec1Y = 0.0f;
-						float mapDec2X = 0.0f;
-						float mapDec2Y = 0.0f;
-						if (mapDecorations != null) {
-							Collection<Vec4b> decorations = mapDecorations.values();
-							for (Vec4b vec4b : decorations) {
-								byte id = vec4b.func_176110_a();
-								if (id != 1) continue;
-
-								if (mapDec1X == 0.0f) {
-									mapDec1X = (float) vec4b.func_176112_b();
-									mapDec1Y = (float) vec4b.func_176113_c();
-								} else if (mapDec2X == 0.0f) {
-									mapDec2X = (float) vec4b.func_176112_b();
-									mapDec2Y = (float) vec4b.func_176113_c();
-								}
-							}
-						}
-						if (player.getName().startsWith("Crafty")) {
-							logPositions(player.getName(), player.posX, player.posY,
-								playerRoomOffsetX, playerRoomOffsetY,
-								playerConnOffsetX, playerConnOffsetY,
-								roomXInBlocks, roomYInBlocks,
-								mapDec1X, mapDec1Y,
-								mapDec2X, mapDec2Y,
-								roomSizeBlocks);
-						}
 						MapPosition pos = new MapPosition(
 							playerRoomOffsetX,
 							playerConnOffsetX,
@@ -1548,73 +1520,9 @@ public class DungeonMap {
 		this.colourMap = colourMap;
 	}
 
-	private static double lastPosX = 0.0f;
-	private static double lastPosY = 0.0f;
-	private static float lastPlayerRoomOffsetX = 0.0f;
-	private static float lastPlayerRoomOffsetY = 0.0f;
-	private static float lastPlayerConnOffsetX = 0.0f;
-	private static float lastPlayerConnOffsetY = 0.0f;
-	private static float lastRoomXInBlocks = 0.0f;
-	private static float lastRoomYInBlocks = 0.0f;
-	private static int lastRoomSizeBlocks = 0;
-
-	private static void logPositions(String playerName, double posX, double posY,
-																	 float playerRoomOffsetX, float playerRoomOffsetY,
-																	 float playerConnOffsetX, float playerConnOffsetY,
-																	 float roomXInBlocks, float roomYInBlocks,
-																	 float mapDec1X, float mapDec1Y,
-																	 float mapDec2X, float mapDec2Y,
-																	 int roomSizeBlocks) {
-
-		if (lastPosX != posX || lastPosY != posY ||
-				lastPlayerRoomOffsetX != playerRoomOffsetX || lastPlayerRoomOffsetY != playerRoomOffsetY ||
-				lastPlayerConnOffsetX != playerConnOffsetX || lastPlayerConnOffsetY != playerConnOffsetY ||
-				lastRoomXInBlocks != roomXInBlocks || lastRoomYInBlocks != roomYInBlocks ||
-				lastRoomSizeBlocks != roomSizeBlocks) {
-			try {
-				log(String.format("%s pos= %f %f mapDec1= %f %f mapDec2= %f %f playerRoomOffsetX= %f playerRoomOffsetY= %f playerConnOffsetX= %f playerConnOffsetY= %f roomXInBlocks= %f roomYInBlocks= %f roomSizeBlocks= %d\n",
-					playerName, posX, posY, mapDec2X, mapDec2Y, mapDec1X, mapDec1Y,
-					playerRoomOffsetX, playerRoomOffsetY,
-					playerConnOffsetX, playerConnOffsetY, roomXInBlocks, roomYInBlocks, roomSizeBlocks));
-				lastPosX = posX;
-				lastPosY = posY;
-				lastPlayerRoomOffsetX = playerRoomOffsetX;
-				lastPlayerRoomOffsetY = playerRoomOffsetY;
-				lastPlayerConnOffsetX = playerConnOffsetX;
-				lastPlayerConnOffsetY = playerConnOffsetY;
-				lastRoomXInBlocks = roomXInBlocks;
-				lastRoomYInBlocks = roomYInBlocks;
-				lastRoomSizeBlocks = roomSizeBlocks;
-			} catch (Exception e) {
-
-			}
-		}
-	}
-
-
 	@SubscribeEvent
 	public void onWorldChange(WorldEvent.Load event) {
-		openLog();
 		colourMap = null;
-	}
-
-	private static FileWriter logWriter;
-	private void openLog() {
-		try {
-			if (logWriter == null) {
-				logWriter = new FileWriter("logdata.log");
-			}
-		} catch (IOException e) {
-			// don't do anything
-		}
-	}
-
-	private static void log(String logLine) {
-		try {
-			logWriter.write(logLine);
-		} catch (IOException e) {
-			// don't do anything
-		}
 	}
 
 	@SubscribeEvent
@@ -1738,11 +1646,6 @@ public class DungeonMap {
 			event.partialTicks
 		);
 		Utils.pushGuiScale(-1);
-		try {
-			logWriter.flush();
-		} catch (IOException e) {
-			//nothing
-		}
 	}
 
 	public List<List<String>> permutations(List<String> values) {
@@ -1795,5 +1698,29 @@ public class DungeonMap {
 		projMatrix.m13 = 1.0F;
 		projMatrix.m23 = -1.0001999F;
 		return projMatrix;
+	}
+
+	public void showPlayerCoordinateData() {
+		EntityPlayerSP player = Minecraft.getMinecraft().thePlayer;
+
+		player.addChatMessage(new ChatComponentText(
+			EnumChatFormatting.YELLOW + "Player X Y Coordinates : " +
+				EnumChatFormatting.WHITE + String.format("%f %f\n", player.posX, player.posY)));
+
+		if (mapDecorations != null) {
+			Collection<Vec4b> decorations = mapDecorations.values();
+			for (Vec4b vec4b : decorations) {
+				byte id = vec4b.func_176110_a();
+				if (id != 1) continue;
+
+				Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+					EnumChatFormatting.YELLOW + "Player Map Decoration: " +
+						EnumChatFormatting.WHITE + String.format("%d %d\n", vec4b.func_176112_b(), vec4b.func_176113_c())));
+			}
+		} else {
+			Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+				EnumChatFormatting.YELLOW + "Player Map Decoration: " +
+					EnumChatFormatting.WHITE + "<NONE>"));
+		}
 	}
 }

@@ -72,11 +72,6 @@ public class DiagCommand extends ClientCommandBase {
 					case "savemap":
 						DungeonMap.setSaveMap(true);
 						break;
-					case "playersearch": // TODO: Remove this when the map is fixed
-						boolean newValue = DungeonMap.toggleSearchForPlayers();
-						sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW +
-							"Searching for players is now " + newValue));
-						break;
 					default:
 						sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Invalid command"));
 						return;
