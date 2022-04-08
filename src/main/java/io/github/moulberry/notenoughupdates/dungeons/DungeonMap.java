@@ -111,8 +111,7 @@ public class DungeonMap {
 	private int connectorSize = 5;
 	private int roomSize = 0;
 
-	//private final List<MapDecoration> decorations = new ArrayList<>();
-	//private final List<MapDecoration> lastDecorations = new ArrayList<>();
+	private Map<String, Vec4b> mapDecorations;
 	private long lastDecorationsMillis = -1;
 	private long lastLastDecorationsMillis = -1;
 
@@ -1131,8 +1130,8 @@ public class DungeonMap {
 	private long lastClearCache = 0;
 
 	public void renderMap(
-		int centerX, int centerY, Color[][] colourMap, Map<String, Vec4b> mapDecorations,
-		int roomSizeBlocks, Set<String> actualPlayers, boolean usePlayerPositions, float partialTicks
+		int centerX, int centerY, Color[][] colourMap, int roomSizeBlocks,
+		Set<String> actualPlayers, boolean usePlayerPositions, float partialTicks
 	) {
 		if (!NotEnoughUpdates.INSTANCE.config.dungeonMap.dmEnable) return;
 		if (colourMap == null) return;
@@ -1325,6 +1324,35 @@ public class DungeonMap {
 						playerConnOffsetX -= startRoomX / (roomSize + connectorSize);
 						playerConnOffsetY -= startRoomY / (roomSize + connectorSize);
 
+
+						float mapDec1X = 0.0f;
+						float mapDec1Y = 0.0f;
+						float mapDec2X = 0.0f;
+						float mapDec2Y = 0.0f;
+						if (mapDecorations != null) {
+							Collection<Vec4b> decorations = mapDecorations.values();
+							for (Vec4b vec4b : decorations) {
+								byte id = vec4b.func_176110_a();
+								if (id != 1) continue;
+
+								if (mapDec1X == 0.0f) {
+									mapDec1X = (float) vec4b.func_176112_b();
+									mapDec1Y = (float) vec4b.func_176113_c();
+								} else if (mapDec2X == 0.0f) {
+									mapDec2X = (float) vec4b.func_176112_b();
+									mapDec2Y = (float) vec4b.func_176113_c();
+								}
+							}
+						}
+						if (player.getName().startsWith("Crafty")) {
+							logPositions(player.getName(), player.posX, player.posY,
+								playerRoomOffsetX, playerRoomOffsetY,
+								playerConnOffsetX, playerConnOffsetY,
+								roomXInBlocks, roomYInBlocks,
+								mapDec1X, mapDec1Y,
+								mapDec2X, mapDec2Y,
+								roomSizeBlocks);
+						}
 						MapPosition pos = new MapPosition(
 							playerRoomOffsetX,
 							playerConnOffsetX,
@@ -1520,6 +1548,50 @@ public class DungeonMap {
 		this.colourMap = colourMap;
 	}
 
+	private static double lastPosX = 0.0f;
+	private static double lastPosY = 0.0f;
+	private static float lastPlayerRoomOffsetX = 0.0f;
+	private static float lastPlayerRoomOffsetY = 0.0f;
+	private static float lastPlayerConnOffsetX = 0.0f;
+	private static float lastPlayerConnOffsetY = 0.0f;
+	private static float lastRoomXInBlocks = 0.0f;
+	private static float lastRoomYInBlocks = 0.0f;
+	private static int lastRoomSizeBlocks = 0;
+
+	private static void logPositions(String playerName, double posX, double posY,
+																	 float playerRoomOffsetX, float playerRoomOffsetY,
+																	 float playerConnOffsetX, float playerConnOffsetY,
+																	 float roomXInBlocks, float roomYInBlocks,
+																	 float mapDec1X, float mapDec1Y,
+																	 float mapDec2X, float mapDec2Y,
+																	 int roomSizeBlocks) {
+
+		if (lastPosX != posX || lastPosY != posY ||
+				lastPlayerRoomOffsetX != playerRoomOffsetX || lastPlayerRoomOffsetY != playerRoomOffsetY ||
+				lastPlayerConnOffsetX != playerConnOffsetX || lastPlayerConnOffsetY != playerConnOffsetY ||
+				lastRoomXInBlocks != roomXInBlocks || lastRoomYInBlocks != roomYInBlocks ||
+				lastRoomSizeBlocks != roomSizeBlocks) {
+			try {
+				log(String.format("%s pos= %f %f mapDec1= %f %f mapDec2= %f %f playerRoomOffsetX= %f playerRoomOffsetY= %f playerConnOffsetX= %f playerConnOffsetY= %f roomXInBlocks= %f roomYInBlocks= %f roomSizeBlocks= %d\n",
+					playerName, posX, posY, mapDec2X, mapDec2Y, mapDec1X, mapDec1Y,
+					playerRoomOffsetX, playerRoomOffsetY,
+					playerConnOffsetX, playerConnOffsetY, roomXInBlocks, roomYInBlocks, roomSizeBlocks));
+				lastPosX = posX;
+				lastPosY = posY;
+				lastPlayerRoomOffsetX = playerRoomOffsetX;
+				lastPlayerRoomOffsetY = playerRoomOffsetY;
+				lastPlayerConnOffsetX = playerConnOffsetX;
+				lastPlayerConnOffsetY = playerConnOffsetY;
+				lastRoomXInBlocks = roomXInBlocks;
+				lastRoomYInBlocks = roomYInBlocks;
+				lastRoomSizeBlocks = roomSizeBlocks;
+			} catch (Exception e) {
+
+			}
+		}
+	}
+
+
 	@SubscribeEvent
 	public void onWorldChange(WorldEvent.Load event) {
 		openLog();
@@ -1537,7 +1609,7 @@ public class DungeonMap {
 		}
 	}
 
-	private void log(String logLine) {
+	private static void log(String logLine) {
 		try {
 			logWriter.write(logLine);
 		} catch (IOException e) {
@@ -1576,7 +1648,6 @@ public class DungeonMap {
 			return;
 		}
 
-		Map<String, Vec4b> decorations = null;
 		Color[][] colourMap = new Color[128][128];
 
 		if (holdingBow) {
@@ -1596,7 +1667,7 @@ public class DungeonMap {
 
 			if (mapData == null) return;
 
-			decorations = mapData.mapDecorations;
+			mapDecorations = mapData.mapDecorations;
 			BufferedImage bufferedimage = null;
 			if (saveMap) {
 				bufferedimage = new BufferedImage(128, 128, 2);
@@ -1661,7 +1732,6 @@ public class DungeonMap {
 			pos.getAbsX(scaledResolution, size / 2) + size / 2,
 			pos.getAbsY(scaledResolution, size / 2) + size / 2,
 			colourMap,
-			decorations,
 			roomSizeBlocks,
 			actualPlayers,
 			true,
