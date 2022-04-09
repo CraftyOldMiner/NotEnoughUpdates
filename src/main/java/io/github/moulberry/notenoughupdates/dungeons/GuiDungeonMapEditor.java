@@ -39,6 +39,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		"notenoughupdates:dungeon_map/editor/background.png");
 	public static final ResourceLocation BUTTON = new ResourceLocation("notenoughupdates:dungeon_map/editor/button.png");
 	private static final DungeonMap demoMap = new DungeonMap();
+	private static final Minecraft mc = Minecraft.getMinecraft();
 
 	private int sizeX;
 	private int sizeY;
@@ -99,7 +100,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		public void render() {
 			if (text == null) return;
 
-			Minecraft.getMinecraft().getTextureManager().bindTexture(BUTTON);
+			mc.getTextureManager().bindTexture(BUTTON);
 			if (isButtonPressed(id)) {
 				GlStateManager.color(colour.getRed() * 0.85f / 255f, colour.getGreen() * 0.85f / 255f,
 					colour.getBlue() * 0.85f / 255f, 1
@@ -113,7 +114,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 			if (text.length() > 0) {
 				Utils.drawStringCenteredScaledMaxWidth(
 					text,
-					Minecraft.getMinecraft().fontRendererObj,
+					mc.fontRendererObj,
 					guiLeft + x + 24,
 					guiTop + y + 8,
 					false,
@@ -326,68 +327,68 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		blurBackground();
 		renderBlurredBackground(width, height, guiLeft + 2, guiTop + 2, sizeX - 4, sizeY - 4);
 
-		Minecraft.getMinecraft().getTextureManager().bindTexture(BACKGROUND);
+		mc.getTextureManager().bindTexture(BACKGROUND);
 		GlStateManager.color(1, 1, 1, 1);
 		Utils.drawTexturedRect(guiLeft, guiTop, sizeX, sizeY, GL11.GL_NEAREST);
 
-		Minecraft.getMinecraft().fontRendererObj.drawString("NEU Dungeon Map Editor", guiLeft + 8, guiTop + 6, 0xFFB4B4B4);
+		mc.fontRendererObj.drawString("NEU Dungeon Map Editor", guiLeft + 8, guiTop + 6, 0xFFB4B4B4);
 
-		Utils.drawStringCenteredScaledMaxWidth("Border Size", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Border Size", mc.fontRendererObj,
 			guiLeft + 76, guiTop + 30, false, 137, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Rooms Size", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Rooms Size", mc.fontRendererObj,
 			guiLeft + 76, guiTop + 60, false, 137, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Icon Scale", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Icon Scale", mc.fontRendererObj,
 			guiLeft + 76, guiTop + 90, false, 137, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Border Style", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Border Style", mc.fontRendererObj,
 			guiLeft + 76, guiTop + 120, false, 137, 0xFFB4B4B4
 		);
 
-		Utils.drawStringCenteredScaledMaxWidth("Dungeon Map", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Dungeon Map", mc.fontRendererObj,
 			guiLeft + 44 + 139, guiTop + 30, false, 60, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Center", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Center", mc.fontRendererObj,
 			guiLeft + 108 + 139, guiTop + 30, false, 60, 0xFFB4B4B4
 		);
 
-		Utils.drawStringCenteredScaledMaxWidth("Rotate", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Rotate", mc.fontRendererObj,
 			guiLeft + 44 + 139, guiTop + 59, false, 60, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Icon Style", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Icon Style", mc.fontRendererObj,
 			guiLeft + 108 + 139, guiTop + 59, false, 60, 0xFFB4B4B4
 		);
 
-		Utils.drawStringCenteredScaledMaxWidth("Check Orient", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Check Orient", mc.fontRendererObj,
 			guiLeft + 44 + 139, guiTop + 88, false, 60, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Check Center", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Check Center", mc.fontRendererObj,
 			guiLeft + 108 + 139, guiTop + 88, false, 60, 0xFFB4B4B4
 		);
 
-		Utils.drawStringCenteredScaledMaxWidth("Interpolation", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Interpolation", mc.fontRendererObj,
 			guiLeft + 44 + 139, guiTop + 117, false, 60, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Compatibility", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Compatibility", mc.fontRendererObj,
 			guiLeft + 108 + 139, guiTop + 117, false, 60, 0xFFB4B4B4
 		);
 
-		Utils.drawStringCenteredScaledMaxWidth("Background", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Background", mc.fontRendererObj,
 			guiLeft + 44 + 139, guiTop + 146, false, 60, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Border", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Border", mc.fontRendererObj,
 			guiLeft + 108 + 139, guiTop + 146, false, 60, 0xFFB4B4B4
 		);
 
-		Utils.drawStringCenteredScaledMaxWidth("BG Blur", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("BG Blur", mc.fontRendererObj,
 			guiLeft + 44 + 139, guiTop + 175, false, 60, 0xFFB4B4B4
 		);
-		Utils.drawStringCenteredScaledMaxWidth("Chroma Type", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Chroma Type", mc.fontRendererObj,
 			guiLeft + 108 + 139, guiTop + 175, false, 60, 0xFFB4B4B4
 		);
 
-		Utils.drawStringCenteredScaledMaxWidth("Edit Map Position", Minecraft.getMinecraft().fontRendererObj,
+		Utils.drawStringCenteredScaledMaxWidth("Edit Map Position", mc.fontRendererObj,
 			guiLeft + 76, guiTop + 209, false, 200, 0xFFB4B4B4
 		);
 
@@ -419,7 +420,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		blurField.render(guiLeft + 20 + 139, guiTop + 181);
 
 		GlStateManager.color(1, 1, 1, 1);
-		Minecraft.getMinecraft().getTextureManager().bindTexture(button_tex);
+		mc.getTextureManager().bindTexture(button_tex);
 		RenderUtils.drawTexturedRect(guiLeft + 52, guiTop + 215, 48, 16);
 		TextRenderUtils.drawStringCenteredScaledMaxWidth("Edit", fontRendererObj, guiLeft + 76, guiTop + 223,
 			false, 48, 0xFF303030
@@ -427,16 +428,19 @@ public class GuiDungeonMapEditor extends GuiScreen {
 
 		Map<String, Vec4b> decorations = new HashMap<>();
 		Vec4b vec4b = new Vec4b((byte) 3, (byte) (((50) - 64) * 2), (byte) (((40) - 64) * 2), (byte) ((60) * 16 / 360));
-		decorations.put(Minecraft.getMinecraft().thePlayer.getName(), vec4b);
+		decorations.put(mc.thePlayer.getName(), vec4b);
 
-		HashSet<String> players = new HashSet<>();
-		players.add(Minecraft.getMinecraft().thePlayer.getName());
 		GlStateManager.color(1, 1, 1, 1);
 
 		demoMap.setMapDecorations(decorations);
-		demoMap.renderMap(guiLeft + 357, guiTop + 125, NotEnoughUpdates.INSTANCE.colourMap, 0,
-			players, false, partialTicks
-		);
+		demoMap.renderMap(
+			guiLeft + 357,
+			guiTop + 125,
+			NotEnoughUpdates.INSTANCE.colorMap,
+			0,
+			new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
+			false,
+			partialTicks);
 
 		for (Button button : buttons) {
 			button.render();
@@ -451,7 +455,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 				width,
 				height,
 				200,
-				Minecraft.getMinecraft().fontRendererObj
+				mc.fontRendererObj
 			);
 		}
 
@@ -481,17 +485,17 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		int sliderAmountI = (int) (96 * sliderAmount);
 
 		GlStateManager.color(1f, 1f, 1f, 1f);
-		Minecraft.getMinecraft().getTextureManager().bindTexture(slider_on_large);
+		mc.getTextureManager().bindTexture(slider_on_large);
 		Utils.drawTexturedRect(centerX - 48, centerY - 8, sliderAmountI, 16,
 			0, sliderAmount, 0, 1, GL11.GL_NEAREST
 		);
 
-		Minecraft.getMinecraft().getTextureManager().bindTexture(slider_off_large);
+		mc.getTextureManager().bindTexture(slider_off_large);
 		Utils.drawTexturedRect(centerX - 48 + sliderAmountI, centerY - 8, 96 - sliderAmountI, 16,
 			sliderAmount, 1, 0, 1, GL11.GL_NEAREST
 		);
 
-		Minecraft.getMinecraft().getTextureManager().bindTexture(slider_button);
+		mc.getTextureManager().bindTexture(slider_button);
 		Utils.drawTexturedRect(centerX - 48 + sliderAmountI - 4, centerY - 8, 8, 16,
 			0, 1, 0, 1, GL11.GL_NEAREST
 		);
@@ -573,13 +577,11 @@ public class GuiDungeonMapEditor extends GuiScreen {
 
 				Map<String, Vec4b> decorations = new HashMap<>();
 				Vec4b vec4b = new Vec4b((byte) 3, (byte) (((50) - 64) * 2), (byte) (((40) - 64) * 2), (byte) ((60) * 16 / 360));
-				decorations.put(Minecraft.getMinecraft().thePlayer.getName(), vec4b);
+				decorations.put(mc.thePlayer.getName(), vec4b);
 
-				HashSet<String> players = new HashSet<>();
-				players.add(Minecraft.getMinecraft().thePlayer.getName());
 				GlStateManager.color(1, 1, 1, 1);
 
-				Minecraft.getMinecraft().displayGuiScreen(new GuiPositionEditor(
+				mc.displayGuiScreen(new GuiPositionEditor(
 					NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition,
 					size, size, () -> {
 					ScaledResolution scaledResolution = Utils.pushGuiScale(2);
@@ -587,9 +589,9 @@ public class GuiDungeonMapEditor extends GuiScreen {
 					demoMap.renderMap(
 						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsX(scaledResolution, size) + size / 2,
 						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsY(scaledResolution, size) + size / 2,
-						NotEnoughUpdates.INSTANCE.colourMap,
+						NotEnoughUpdates.INSTANCE.colorMap,
 						0,
-						players,
+						new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
 						false,
 						0
 					);
@@ -608,7 +610,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		super.handleMouseInput();
 
 		if (activeColourEditor != null) {
-			ScaledResolution realRes = new ScaledResolution(Minecraft.getMinecraft());
+			ScaledResolution realRes = new ScaledResolution(mc);
 			int mouseX = Mouse.getEventX() * realRes.getScaledWidth() / this.mc.displayWidth;
 			int mouseY =
 				realRes.getScaledHeight() - Mouse.getEventY() * realRes.getScaledHeight() / this.mc.displayHeight - 1;
@@ -695,7 +697,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 				if (options.dmCompat > 2) options.dmCompat = 0;
 				break;
 			case 26: {
-				ScaledResolution realRes = new ScaledResolution(Minecraft.getMinecraft());
+				ScaledResolution realRes = new ScaledResolution(mc);
 				mouseX = Mouse.getEventX() * realRes.getScaledWidth() / this.mc.displayWidth;
 				mouseY = realRes.getScaledHeight() - Mouse.getEventY() * realRes.getScaledHeight() / this.mc.displayHeight - 1;
 				activeColourEditor = new GuiElementColour(mouseX, mouseY, options.dmBackgroundColour,
@@ -704,7 +706,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 			}
 			break;
 			case 27: {
-				ScaledResolution realRes = new ScaledResolution(Minecraft.getMinecraft());
+				ScaledResolution realRes = new ScaledResolution(mc);
 				mouseX = Mouse.getEventX() * realRes.getScaledWidth() / this.mc.displayWidth;
 				mouseY = realRes.getScaledHeight() - Mouse.getEventY() * realRes.getScaledHeight() / this.mc.displayHeight - 1;
 				activeColourEditor = new GuiElementColour(mouseX, mouseY, options.dmBorderColour,
@@ -770,8 +772,8 @@ public class GuiDungeonMapEditor extends GuiScreen {
 	private void blurBackground() {
 		if (!OpenGlHelper.isFramebufferEnabled()) return;
 
-		int width = Minecraft.getMinecraft().displayWidth;
-		int height = Minecraft.getMinecraft().displayHeight;
+		int width = mc.displayWidth;
+		int height = mc.displayHeight;
 
 		if (blurOutputHorz == null) {
 			blurOutputHorz = new Framebuffer(width, height, false);
@@ -784,18 +786,18 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		if (blurOutputHorz.framebufferWidth != width || blurOutputHorz.framebufferHeight != height) {
 			blurOutputHorz.createBindFramebuffer(width, height);
 			blurShaderHorz.setProjectionMatrix(createProjectionMatrix(width, height));
-			Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(false);
+			mc.getFramebuffer().bindFramebuffer(false);
 		}
 		if (blurOutputVert.framebufferWidth != width || blurOutputVert.framebufferHeight != height) {
 			blurOutputVert.createBindFramebuffer(width, height);
 			blurShaderVert.setProjectionMatrix(createProjectionMatrix(width, height));
-			Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(false);
+			mc.getFramebuffer().bindFramebuffer(false);
 		}
 
 		if (blurShaderHorz == null) {
 			try {
-				blurShaderHorz = new Shader(Minecraft.getMinecraft().getResourceManager(), "blur",
-					Minecraft.getMinecraft().getFramebuffer(), blurOutputHorz
+				blurShaderHorz = new Shader(mc.getResourceManager(), "blur",
+					mc.getFramebuffer(), blurOutputHorz
 				);
 				blurShaderHorz.getShaderManager().getShaderUniform("BlurDir").set(1, 0);
 				blurShaderHorz.setProjectionMatrix(createProjectionMatrix(width, height));
@@ -804,7 +806,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 		}
 		if (blurShaderVert == null) {
 			try {
-				blurShaderVert = new Shader(Minecraft.getMinecraft().getResourceManager(), "blur",
+				blurShaderVert = new Shader(mc.getResourceManager(), "blur",
 					blurOutputHorz, blurOutputVert
 				);
 				blurShaderVert.getShaderManager().getShaderUniform("BlurDir").set(0, 1);
@@ -824,7 +826,7 @@ public class GuiDungeonMapEditor extends GuiScreen {
 			GlStateManager.enableDepth();
 			GL11.glPopMatrix();
 
-			Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(false);
+			mc.getFramebuffer().bindFramebuffer(false);
 		}
 	}
 

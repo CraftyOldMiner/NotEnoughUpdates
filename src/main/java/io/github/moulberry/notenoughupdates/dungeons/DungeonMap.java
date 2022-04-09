@@ -7,10 +7,11 @@ import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.core.config.Position;
 import io.github.moulberry.notenoughupdates.core.util.MiscUtils;
 import io.github.moulberry.notenoughupdates.core.util.StringUtils;
+import io.github.moulberry.notenoughupdates.dungeons.ColorMap.ColorRoom;
+import io.github.moulberry.notenoughupdates.options.seperateSections.DungeonMapConfig;
 import io.github.moulberry.notenoughupdates.util.NEUResourceManager;
 import io.github.moulberry.notenoughupdates.util.SpecialColour;
 import io.github.moulberry.notenoughupdates.util.Utils;
-import net.minecraft.block.material.MapColor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -48,24 +49,24 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.*;
-import javax.imageio.ImageIO;
 
 public class DungeonMap {
 	private static DungeonMap instance = null;
+	private static final Minecraft mc = Minecraft.getMinecraft();
+	private static final DungeonMapConfig config = NotEnoughUpdates.INSTANCE.config.dungeonMap;
 	private static final ResourceLocation GREEN_CHECK = new ResourceLocation(
 		"notenoughupdates:dungeon_map/green_check.png");
 	private static final ResourceLocation WHITE_CHECK = new ResourceLocation(
 		"notenoughupdates:dungeon_map/white_check.png");
-	private static final ResourceLocation QUESTION = new ResourceLocation("notenoughupdates:dungeon_map/question.png");
-	private static final ResourceLocation CROSS = new ResourceLocation("notenoughupdates:dungeon_map/cross.png");
+	private static final ResourceLocation QUESTION = new ResourceLocation(
+		"notenoughupdates:dungeon_map/question.png");
+	private static final ResourceLocation CROSS = new ResourceLocation(
+		"notenoughupdates:dungeon_map/cross.png");
 
 	private static final ResourceLocation ROOM_RED = new ResourceLocation(
 		"notenoughupdates:dungeon_map/rooms_default/red_room.png");
@@ -109,11 +110,9 @@ public class DungeonMap {
 
 	private static final int NETHER_STAR_ITEM_ID = 399;
 
-	private final DungeonMapData dungeonMapData = new DungeonMapData();
+	private final ColorMap currentColorMap = new ColorMap();
 	private final HashMap<RoomOffset, Room> roomMap = new HashMap<>();
-	private Color[][] colourMap = new Color[128][128];
-	private int startRoomX = -1;
-	private int startRoomY = -1;
+	private ColorRoom startRoom = null; 
 	private int connectorSize = 5;
 	private int roomSize = 0;
 
@@ -137,7 +136,7 @@ public class DungeonMap {
 	}
 
 	public static void saveMap() {
-		DungeonMap.getInstance().dungeonMapData.saveMapToPngFile("DungeonMap.png");
+		DungeonMap.getInstance().currentColorMap.saveMapToPngFile("DungeonMap.png");
 	}
 
 	public void setMapDecorations(Map<String, Vec4b> mapDecorations) {
@@ -239,11 +238,11 @@ public class DungeonMap {
 					indicatorTex = CROSS;
 				}
 				if (indicatorTex != null) {
-					Minecraft.getMinecraft().getTextureManager().bindTexture(indicatorTex);
+					mc.getTextureManager().bindTexture(indicatorTex);
 					float x = 0;
 					float y = 0;
 
-					if (NotEnoughUpdates.INSTANCE.config.dungeonMap.dmCenterCheck) {
+					if (config.dmCenterCheck) {
 						if (fillCorner) {
 							x += -(roomSize + connectorSize) / 2f * Math.cos(Math.toRadians(rotation - 45)) * 1.414f;
 							y += (roomSize + connectorSize) / 2f * Math.sin(Math.toRadians(rotation - 45)) * 1.414;
@@ -257,18 +256,18 @@ public class DungeonMap {
 						}
 					}
 					GlStateManager.translate(x, y, 0);
-					if (!NotEnoughUpdates.INSTANCE.config.dungeonMap.dmOrientCheck) {
+					if (!config.dmOrientCheck) {
 						GlStateManager.rotate(-rotation + 180, 0, 0, 1);
 					}
 
 					GlStateManager.pushMatrix();
-					GlStateManager.scale(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmIconScale,
-						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmIconScale, 1
+					GlStateManager.scale(config.dmIconScale,
+						config.dmIconScale, 1
 					);
 					Utils.drawTexturedRect(-5, -5, 10, 10, GL11.GL_NEAREST);
 					GlStateManager.popMatrix();
 
-					if (!NotEnoughUpdates.INSTANCE.config.dungeonMap.dmOrientCheck) {
+					if (!config.dmOrientCheck) {
 						GlStateManager.rotate(rotation - 180, 0, 0, 1);
 					}
 					GlStateManager.translate(-x, -y, 0);
@@ -297,7 +296,7 @@ public class DungeonMap {
 			}
 
 			if (roomTex != null) {
-				Minecraft.getMinecraft().getTextureManager().bindTexture(roomTex);
+				mc.getTextureManager().bindTexture(roomTex);
 				GlStateManager.color(1, 1, 1, 1);
 				Utils.drawTexturedRect(0, 0, roomSize, roomSize, GL11.GL_LINEAR);
 			} else {
@@ -306,7 +305,7 @@ public class DungeonMap {
 
 			if (fillCorner) {
 				GlStateManager.color(1, 1, 1, 1);
-				Minecraft.getMinecraft().getTextureManager().bindTexture(CORNER_BROWN);
+				mc.getTextureManager().bindTexture(CORNER_BROWN);
 				Utils.drawTexturedRect(roomSize, roomSize, connectorSize, connectorSize, GL11.GL_NEAREST);
 			}
 
@@ -372,7 +371,7 @@ public class DungeonMap {
 					Gui.drawRect(xOffset, yOffset, xOffset + width, yOffset + height, connection.colour.getRGB());
 				} else {
 					GlStateManager.color(1, 1, 1, 1);
-					Minecraft.getMinecraft().getTextureManager().bindTexture(corridorTex);
+					mc.getTextureManager().bindTexture(corridorTex);
 					GlStateManager.pushMatrix();
 					if (connection == right) {
 						GlStateManager.translate(roomSize / 2f, roomSize / 2f, 0);
@@ -415,13 +414,13 @@ public class DungeonMap {
 	}
 
 	public int getRenderRoomSize() {
-		double roomSizeOption = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmRoomSize;
+		double roomSizeOption = config.dmRoomSize;
 		if (roomSizeOption <= 0) return 12;
 		return 12 + (int) Math.round(roomSizeOption * 4);
 	}
 
 	public int getRenderConnSize() {
-		int roomSizeOption = Math.round(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmRoomSize);
+		int roomSizeOption = Math.round(config.dmRoomSize);
 		if (roomSizeOption <= 0) return 3;
 		return 3 + roomSizeOption;
 	}
@@ -429,10 +428,10 @@ public class DungeonMap {
 	private final HashMap<Integer, Float> borderRadiusCache = new HashMap<>();
 
 	public float getBorderRadius() {
-		int borderSizeOption = Math.round(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderSize);
+		int borderSizeOption = Math.round(config.dmBorderSize);
 		String sizeId = borderSizeOption == 0 ? "small" : borderSizeOption == 2 ? "large" : "medium";
 
-		int style = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderStyle;
+		int style = config.dmBorderStyle;
 		if (borderRadiusCache.containsKey(style)) {
 			return borderRadiusCache.get(style);
 		}
@@ -458,18 +457,8 @@ public class DungeonMap {
 	}
 
 	public void render(int centerX, int centerY) {
-		boolean useFb = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmCompat <= 1 && OpenGlHelper.isFramebufferEnabled();
-		boolean useShd = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmCompat <= 0 && OpenGlHelper.areShadersSupported();
-
-        /*if((useFb && !OpenGlHelper.isFramebufferEnabled()) || (useShd && !OpenGlHelper.areShadersSupported())) {
-            Utils.drawStringCentered(EnumChatFormatting.RED+"NEU Dungeon Map requires framebuffers & shaders",
-                    Minecraft.getMinecraft().fontRendererObj, centerX, centerY-10, true, 0);
-            Utils.drawStringCentered(EnumChatFormatting.RED+"Turn off Optifine Fast Render",
-                    Minecraft.getMinecraft().fontRendererObj, centerX, centerY, true, 0);
-            Utils.drawStringCentered(EnumChatFormatting.RED+"If that doesn't work, join NEU discord for support",
-                    Minecraft.getMinecraft().fontRendererObj, centerX, centerY+10, true, 0);
-            return;
-        }*/
+		boolean useFb = config.dmCompat <= 1 && OpenGlHelper.isFramebufferEnabled();
+		boolean useShd = config.dmCompat <= 0 && OpenGlHelper.areShadersSupported();
 
 		ScaledResolution scaledResolution = Utils.pushGuiScale(2);
 
@@ -484,27 +473,27 @@ public class DungeonMap {
 			maxRoomY = Math.max(offset.y, maxRoomY);
 		}
 
-		int borderSizeOption = Math.round(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderSize);
+		int borderSizeOption = Math.round(config.dmBorderSize);
 
 		int renderRoomSize = getRenderRoomSize();
 		int renderConnSize = getRenderConnSize();
 
 		MapPosition playerPos = null;
-		if (playerEntityMapPositions.containsKey(Minecraft.getMinecraft().thePlayer.getName())) {
-			playerPos = playerEntityMapPositions.get(Minecraft.getMinecraft().thePlayer.getName());
-		} else if (playerMarkerMapPositions.containsKey(Minecraft.getMinecraft().thePlayer.getName())) {
-			playerPos = playerMarkerMapPositions.get(Minecraft.getMinecraft().thePlayer.getName());
+		if (playerEntityMapPositions.containsKey(mc.thePlayer.getName())) {
+			playerPos = playerEntityMapPositions.get(mc.thePlayer.getName());
+		} else if (playerMarkerMapPositions.containsKey(mc.thePlayer.getName())) {
+			playerPos = playerMarkerMapPositions.get(mc.thePlayer.getName());
 		}
 
 		int rotation = 180;
-		if (playerPos != null && NotEnoughUpdates.INSTANCE.config.dungeonMap.dmRotatePlayer) {
+		if (playerPos != null && config.dmRotatePlayer) {
 			rotation = (int) playerPos.rotation;
 		}
 
 		int mapSizeX;
 		int mapSizeY;
-		if (NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderStyle <= 1) {
-			mapSizeX = 80 + Math.round(40 * NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderSize);
+		if (config.dmBorderStyle <= 1) {
+			mapSizeX = 80 + Math.round(40 * config.dmBorderSize);
 		} else {
 			mapSizeX = borderSizeOption == 0 ? 90 : borderSizeOption == 1 ? 120 : borderSizeOption == 2 ? 160 : 240;
 		}
@@ -523,7 +512,7 @@ public class DungeonMap {
 
 		try {
 			if (mapShader == null) {
-				mapShader = new Shader(new NEUResourceManager(Minecraft.getMinecraft().getResourceManager()),
+				mapShader = new Shader(new NEUResourceManager(mc.getResourceManager()),
 					"dungeonmap", mapFramebuffer1, mapFramebuffer2
 				);
 			}
@@ -534,7 +523,7 @@ public class DungeonMap {
 		}
 
 		int backgroundColour =
-			SpecialColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBackgroundColour);
+			SpecialColour.specialToChromaRGB(config.dmBackgroundColour);
 
 		mapFramebuffer1.framebufferColor[0] = ((backgroundColour >> 16) & 0xFF) / 255f;
 		mapFramebuffer1.framebufferColor[1] = ((backgroundColour >> 8) & 0xFF) / 255f;
@@ -568,7 +557,7 @@ public class DungeonMap {
 					GL11.glEnable(GL11.GL_SCISSOR_TEST);
 					GL11.glScissor(
 						(centerX - mapSizeX / 2) * 2,
-						Minecraft.getMinecraft().displayHeight - (centerY + mapSizeY / 2) * 2,
+						mc.displayHeight - (centerY + mapSizeY / 2) * 2,
 						mapSizeX * 2,
 						mapSizeY * 2
 					);
@@ -576,11 +565,11 @@ public class DungeonMap {
 					GlStateManager.translate(centerX - mapSizeX / 2, centerY - mapSizeY / 2, 100);
 				}
 
-				if (NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBackgroundBlur > 0.1 &&
-					NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBackgroundBlur < 100 &&
-					NotEnoughUpdates.INSTANCE.config.dungeonMap.dmEnable) {
+				if (config.dmBackgroundBlur > 0.1 &&
+					config.dmBackgroundBlur < 100 &&
+					config.dmEnable) {
 					GlStateManager.translate(-centerX + mapSizeX / 2, -centerY + mapSizeY / 2, 0);
-					BackgroundBlur.renderBlurredBackground(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBackgroundBlur,
+					BackgroundBlur.renderBlurredBackground(config.dmBackgroundBlur,
 						scaledResolution.getScaledWidth(), scaledResolution.getScaledHeight(),
 						centerX - mapSizeX / 2, centerY - mapSizeY / 2, mapSizeX, mapSizeY
 					);
@@ -590,8 +579,8 @@ public class DungeonMap {
 
 				GlStateManager.translate(mapCenterX, mapCenterY, 10);
 
-				if (!useFb || NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBackgroundBlur > 0.1 &&
-					NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBackgroundBlur < 100) {
+				if (!useFb || config.dmBackgroundBlur > 0.1 &&
+					config.dmBackgroundBlur < 100) {
 					GlStateManager.enableBlend();
 					GL14.glBlendFuncSeparate(
 						GL11.GL_SRC_ALPHA,
@@ -604,7 +593,7 @@ public class DungeonMap {
 
 				GlStateManager.rotate(-rotation + 180, 0, 0, 1);
 
-				if (NotEnoughUpdates.INSTANCE.config.dungeonMap.dmCenterPlayer && playerPos != null) {
+				if (config.dmCenterPlayer && playerPos != null) {
 					float x = playerPos.getRenderX(0);
 					float y = playerPos.getRenderY(0);
 					x -= minRoomX * (renderRoomSize + renderConnSize);
@@ -679,7 +668,7 @@ public class DungeonMap {
 					float y = pos.getRenderY(0);
 					float angle = pos.rotation;
 
-					boolean doInterp = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPlayerInterp;
+					boolean doInterp = config.dmPlayerInterp;
 					if (!isFloorOne && playerEntityMapPositions.containsKey(name)) {
 						MapPosition entityPos = playerEntityMapPositions.get(name);
 						angle = entityPos.rotation;
@@ -696,7 +685,7 @@ public class DungeonMap {
 					float minU = 3 / 4f;
 					float minV = 0;
 
-					if (name.equals(Minecraft.getMinecraft().thePlayer.getName())) {
+					if (name.equals(mc.thePlayer.getName())) {
 						minU = 1 / 4f;
 					}
 
@@ -735,9 +724,9 @@ public class DungeonMap {
 					GlStateManager.color(1, 1, 1, 1);
 					if ((!NotEnoughUpdates.INSTANCE.config.dungeons.showOwnHeadAsMarker ||
 						playerMarkerMapPositions.size() <= 1 || minU != 1 / 4f) &&
-						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPlayerHeads >= 1 &&
+						config.dmPlayerHeads >= 1 &&
 						playerSkinMap.containsKey(entry.getKey())) {
-						Minecraft.getMinecraft().getTextureManager().bindTexture(playerSkinMap.get(entry.getKey()));
+						mc.getTextureManager().bindTexture(playerSkinMap.get(entry.getKey()));
 
 						minU = 8 / 64f;
 						minV = 8 / 64f;
@@ -745,11 +734,11 @@ public class DungeonMap {
 						maxV = 16 / 64f;
 
 						headLayer = true;
-						if (NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPlayerHeads >= 2) {
+						if (config.dmPlayerHeads >= 2) {
 							blackBorder = true;
 						}
 					} else {
-						Minecraft.getMinecraft().getTextureManager().bindTexture(mapIcons);
+						mc.getTextureManager().bindTexture(mapIcons);
 					}
 
 					x -= minRoomX * (renderRoomSize + renderConnSize);
@@ -767,8 +756,8 @@ public class DungeonMap {
 					);
 
 					GlStateManager.translate(x, y, -0.02F);
-					GlStateManager.scale(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmIconScale,
-						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmIconScale, 1
+					GlStateManager.scale(config.dmIconScale,
+						config.dmIconScale, 1
 					);
 					GlStateManager.rotate(angle, 0.0F, 0.0F, 1.0F);
 					GlStateManager.translate(-0.5F, 0.5F, 0.0F);
@@ -848,7 +837,7 @@ public class DungeonMap {
 					GlStateManager.popMatrix();
 				}
 
-				Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(true);
+				mc.getFramebuffer().bindFramebuffer(true);
 
 				Utils.pushGuiScale(2);
 
@@ -867,8 +856,8 @@ public class DungeonMap {
 
 			GlStateManager.translate(centerX, centerY, 100);
 
-			if (NotEnoughUpdates.INSTANCE.config.dungeonMap.dmChromaBorder) {
-				int colour = SpecialColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderColour);
+			if (config.dmChromaBorder) {
+				int colour = SpecialColour.specialToChromaRGB(config.dmBorderColour);
 
 				Gui.drawRect(-mapCenterX - 2, -mapCenterY - 2, -mapCenterX, -mapCenterY,
 					colour
@@ -907,25 +896,25 @@ public class DungeonMap {
 
 			} else {
 				Gui.drawRect(-mapCenterX - 2, -mapCenterY, -mapCenterX, mapCenterY,
-					SpecialColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderColour)
+					SpecialColour.specialToChromaRGB(config.dmBorderColour)
 				); //left
 				Gui.drawRect(mapCenterX, -mapCenterY, mapCenterX + 2, mapCenterY,
-					SpecialColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderColour)
+					SpecialColour.specialToChromaRGB(config.dmBorderColour)
 				); //right
 				Gui.drawRect(-mapCenterX - 2, -mapCenterY - 2, mapCenterX + 2, -mapCenterY,
-					SpecialColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderColour)
+					SpecialColour.specialToChromaRGB(config.dmBorderColour)
 				); //top
 				Gui.drawRect(-mapCenterX - 2, mapCenterY, mapCenterX + 2, mapCenterY + 2,
-					SpecialColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderColour)
+					SpecialColour.specialToChromaRGB(config.dmBorderColour)
 				); //bottom
 			}
 
 			String sizeId = borderSizeOption == 0 ? "small" : borderSizeOption == 2 ? "large" : "medium";
 
 			ResourceLocation rl = new ResourceLocation("notenoughupdates:dungeon_map/borders/" + sizeId + "/" +
-				NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderStyle + ".png");
-			if (Minecraft.getMinecraft().getTextureManager().getTexture(rl) != TextureUtil.missingTexture) {
-				Minecraft.getMinecraft().getTextureManager().bindTexture(rl);
+				config.dmBorderStyle + ".png");
+			if (mc.getTextureManager().getTexture(rl) != TextureUtil.missingTexture) {
+				mc.getTextureManager().bindTexture(rl);
 				GlStateManager.color(1, 1, 1, 1);
 
 				int size = borderSizeOption == 0 ? 165 : borderSizeOption == 1 ? 220 : borderSizeOption == 2 ? 300 : 440;
@@ -935,8 +924,8 @@ public class DungeonMap {
 			GlStateManager.translate(-centerX, -centerY, -100);
 		} catch (Exception e) {
 			e.printStackTrace();
-			Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(true);
-			Minecraft.getMinecraft().entityRenderer.setupOverlayRendering();
+			mc.getFramebuffer().bindFramebuffer(true);
+			mc.entityRenderer.setupOverlayRendering();
 		}
 
 		Utils.pushGuiScale(-1);
@@ -950,13 +939,14 @@ public class DungeonMap {
 	public void updateRoomConnections(RoomOffset roomOffset) {
 		if (roomMap.containsKey(roomOffset)) {
 			Room room = roomMap.get(roomOffset);
+			Color[][] colourMap = currentColorMap.getCurrentColorMap();
 
 			int otherPixelFilled = 0;
 			int otherPixelColour = 0;
 			for (int xOff = 0; xOff < roomSize; xOff++) {
 				for (int yOff = 0; yOff < roomSize; yOff++) {
-					int x = startRoomX + roomOffset.x * (roomSize + connectorSize) + xOff;
-					int y = startRoomY + roomOffset.y * (roomSize + connectorSize) + yOff;
+					int x = startRoom.x + roomOffset.x * (roomSize + connectorSize) + xOff;
+					int y = startRoom.y + roomOffset.y * (roomSize + connectorSize) + yOff;
 
 					if (x > 0 && y > 0 && x < colourMap.length && y < colourMap[x].length) {
 						Color c = colourMap[x][y];
@@ -986,8 +976,8 @@ public class DungeonMap {
 
 				for (int i = 0; i < roomSize; i++) {
 					for (int j = 1; j <= connectorSize; j++) {
-						int x = startRoomX + roomOffset.x * (roomSize + connectorSize);
-						int y = startRoomY + roomOffset.y * (roomSize + connectorSize);
+						int x = startRoom.x + roomOffset.x * (roomSize + connectorSize);
+						int y = startRoom.y + roomOffset.y * (roomSize + connectorSize);
 
 						if (k == 0) {
 							x += i;
@@ -1043,8 +1033,8 @@ public class DungeonMap {
 				}
 			}
 
-			int x = startRoomX + roomOffset.x * (roomSize + connectorSize) + roomSize + connectorSize / 2;
-			int y = startRoomY + roomOffset.y * (roomSize + connectorSize) + roomSize + connectorSize / 2;
+			int x = startRoom.x + roomOffset.x * (roomSize + connectorSize) + roomSize + connectorSize / 2;
+			int y = startRoom.y + roomOffset.y * (roomSize + connectorSize) + roomSize + connectorSize / 2;
 
 			room.fillCorner = false;
 			if (x > 0 && y > 0 && x < colourMap.length && y < colourMap[x].length) {
@@ -1057,13 +1047,15 @@ public class DungeonMap {
 	}
 
 	public void loadNeighbors(RoomOffset room) {
+		Color[][] colourMap = currentColorMap.getCurrentColorMap();
+
 		if (!roomMap.containsKey(room)) {
 			roomMap.put(room, new Room());
 		}
 		for (RoomOffset neighbor : room.getNeighbors()) {
 			if (!roomMap.containsKey(neighbor)) {
-				int x = startRoomX + neighbor.x * (roomSize + connectorSize);
-				int y = startRoomY + neighbor.y * (roomSize + connectorSize);
+				int x = startRoom.x + neighbor.x * (roomSize + connectorSize);
+				int y = startRoom.y + neighbor.y * (roomSize + connectorSize);
 
 				if (x >= 0 && y >= 0 && x + roomSize < colourMap.length && y + roomSize < colourMap[x].length) {
 					if (colourMap[x][y].getAlpha() > 100) {
@@ -1076,9 +1068,10 @@ public class DungeonMap {
 	}
 
 	public void updateRoomColours() {
+		Color[][] colourMap = currentColorMap.getCurrentColorMap();
 		for (Map.Entry<RoomOffset, Room> entry : roomMap.entrySet()) {
-			int x = startRoomX + entry.getKey().x * (roomSize + connectorSize);
-			int y = startRoomY + entry.getKey().y * (roomSize + connectorSize);
+			int x = startRoom.x + entry.getKey().x * (roomSize + connectorSize);
+			int y = startRoom.y + entry.getKey().y * (roomSize + connectorSize);
 
 			try {
 				entry.getValue().colour = colourMap[x][y];
@@ -1139,21 +1132,17 @@ public class DungeonMap {
 	private long lastClearCache = 0;
 
 	public void renderMap(
-		int centerX, int centerY, Color[][] colourMap, int roomSizeBlocks,
-		Set<String> actualPlayers, boolean usePlayerPositions, float partialTicks
+		int centerX, int centerY, ColorMap colorMap, int roomSizeBlocks,
+		Set<String> playerNames, boolean usePlayerPositions, float partialTicks
 	) {
-		if (!NotEnoughUpdates.INSTANCE.config.dungeonMap.dmEnable) return;
-		if (colourMap == null) return;
-		if (colourMap.length != 128) return;
-		if (colourMap[0].length != 128) return;
-		this.colourMap = colourMap;
+		if (!config.dmEnable) return;
+		if (colorMap == null) return;
+		this.currentColorMap.setColorData(colorMap.getCurrentColorBytes());
 
 		boolean searchForPlayers = false;
 		if (System.currentTimeMillis() - lastClearCache > 1000) {
 			roomMap.clear();
 			searchForPlayers = true;
-			startRoomX = -1;
-			startRoomY = -1;
 			connectorSize = -1;
 			roomSize = -1;
 			borderRadiusCache.clear();
@@ -1162,7 +1151,7 @@ public class DungeonMap {
 			lastClearCache = System.currentTimeMillis();
 
 			isFloorOne = false;
-			Scoreboard scoreboard = Minecraft.getMinecraft().thePlayer.getWorldScoreboard();
+			Scoreboard scoreboard = mc.thePlayer.getWorldScoreboard();
 
 			ScoreObjective sidebarObjective = scoreboard.getObjectiveInDisplaySlot(1);
 
@@ -1186,57 +1175,24 @@ public class DungeonMap {
 		}
 
 		int alphaPixels = 0;
-		for (int x = 0; x < 128; x++) {
-			for (int y = 0; y < 128; y++) {
-				Color c = colourMap[x][y];
-				if (c == null) {
-					return;
-				} else if (c.getAlpha() < 50) {
+		for (int x = 0; x < ColorMap.MAP_SIZE; x++) {
+			for (int y = 0; y < ColorMap.MAP_SIZE; y++) {
+				if (colorMap.getAlphaAsInt(x, y) < 50) {
 					alphaPixels++;
 				}
 			}
 		}
-		if (alphaPixels < 128 * 128 / 10) {
+		// if less than 10 percent of pixels were alpha then it's not the dungeon map
+		if (alphaPixels < ColorMap.MAP_SIZE * ColorMap.MAP_SIZE / 10) {
 			failMap = true;
 			return;
 		}
 
-		if (startRoomX < 0 || startRoomY < 0 || roomSize <= 0) {
-			for (int x = 0; x < colourMap.length; x++) {
-				for (int y = 0; y < colourMap[x].length; y++) {
-					Color c = colourMap[x][y];
-					if (c.getAlpha() > 80) {
-						if (startRoomX < 0 && startRoomY < 0 && c.getRed() == 0 && c.getGreen() == 124 && c.getBlue() == 0) {
-							roomSize = 0;
-							out:
-							for (int xd = 0; xd <= 20; xd++) {
-								for (int yd = 0; yd <= 20; yd++) {
-									if (x + xd >= colourMap.length || y + yd >= colourMap[x + xd].length) continue;
-									Color c2 = colourMap[x + xd][y + yd];
-
-									if (c2.getGreen() != 124 || c2.getAlpha() <= 80) {
-										if (xd < 10 && yd < 10) {
-											break out;
-										}
-									} else {
-										roomSize = Math.max(roomSize, Math.min(xd + 1, yd + 1));
-									}
-									if (xd == 20 && yd == 20) {
-										if (roomSize == 0) roomSize = 20;
-										startRoomX = x;
-										startRoomY = y;
-									}
-								}
-							}
-						}
-					}
-				}
+		if (startRoom == null || roomSize <= 0) {
+			if (!colorMap.hasRoomWithColor(ColorMap.START_ROOM)) {
+				failMap = true;
+				return;
 			}
-		}
-
-		if (startRoomX < 0 || startRoomY < 0) {
-			failMap = true;
-			return;
 		}
 
 		if (connectorSize <= 0) {
@@ -1247,21 +1203,21 @@ public class DungeonMap {
 						int y;
 
 						if (k == 0) {
-							x = startRoomX + i;
-							y = startRoomY - j;
+							x = startRoom.x + i;
+							y = startRoom.y - j;
 						} else if (k == 1) {
-							x = startRoomX + roomSize + j - 1;
-							y = startRoomY + i;
+							x = startRoom.x + roomSize + j - 1;
+							y = startRoom.y + i;
 						} else if (k == 2) {
-							x = startRoomX + i;
-							y = startRoomY + roomSize + j - 1;
+							x = startRoom.x + i;
+							y = startRoom.y + roomSize + j - 1;
 						} else {
-							x = startRoomX - j;
-							y = startRoomY + i;
+							x = startRoom.x - j;
+							y = startRoom.y + i;
 						}
 
-						if (x > 0 && y > 0 && x < colourMap.length && y < colourMap[x].length) {
-							if (colourMap[x][y].getAlpha() > 80) {
+						if (x > 0 && y > 0 && x < ColorMap.MAP_SIZE && y < ColorMap.MAP_SIZE) {
+							if (colorMap.getAlphaAsInt(x, y) > 80) {
 								if (j == 1) {
 									break;
 								}
@@ -1277,10 +1233,10 @@ public class DungeonMap {
 			}
 		}
 
-		actualPlayers.add(Minecraft.getMinecraft().thePlayer.getName());
+		playerNames.add(mc.thePlayer.getName());
 		if (searchForPlayers) {
-			for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
-				if (player instanceof AbstractClientPlayer && actualPlayers.contains(player.getName())) {
+			for (EntityPlayer player : mc.theWorld.playerEntities) {
+				if (player instanceof AbstractClientPlayer && playerNames.contains(player.getName())) {
 					AbstractClientPlayer aplayer = (AbstractClientPlayer) player;
 					ResourceLocation skin = aplayer.getLocationSkin();
 					if (skin != DefaultPlayerSkin.getDefaultSkin(aplayer.getUniqueID())) {
@@ -1293,9 +1249,9 @@ public class DungeonMap {
 
 		playerEntityMapPositions.clear();
 		if (usePlayerPositions) {
-			for (String playerName : actualPlayers) {
+			for (String playerName : playerNames) {
 				if (playerIdMap.containsKey(playerName)) {
-					Entity entity = Minecraft.getMinecraft().theWorld.getEntityByID(playerIdMap.get(playerName));
+					Entity entity = mc.theWorld.getEntityByID(playerIdMap.get(playerName));
 					if (entity instanceof EntityPlayer) {
 						EntityPlayer player = (EntityPlayer) entity;
 
@@ -1327,10 +1283,10 @@ public class DungeonMap {
 							playerRoomOffsetY += (roomYInBlocks - 2) / (roomSizeBlocks - 4);
 						}
 
-						playerRoomOffsetX -= startRoomX / (roomSize + connectorSize);
-						playerRoomOffsetY -= startRoomY / (roomSize + connectorSize);
-						playerConnOffsetX -= startRoomX / (roomSize + connectorSize);
-						playerConnOffsetY -= startRoomY / (roomSize + connectorSize);
+						playerRoomOffsetX -= startRoom.x / (roomSize + connectorSize);
+						playerRoomOffsetY -= startRoom.y / (roomSize + connectorSize);
+						playerConnOffsetX -= startRoom.x / (roomSize + connectorSize);
+						playerConnOffsetY -= startRoom.y / (roomSize + connectorSize);
 
 						MapPosition pos = new MapPosition(
 							playerRoomOffsetX,
@@ -1372,8 +1328,8 @@ public class DungeonMap {
 					continue;
 				}
 
-				float deltaX = x - startRoomX;
-				float deltaY = y - startRoomY;
+				float deltaX = x - startRoom.x;
+				float deltaY = y - startRoom.y;
 
 				float roomsOffsetX = (int) Math.floor(deltaX / (roomSize + connectorSize));
 				float connOffsetX = (int) Math.floor(deltaX / (roomSize + connectorSize));
@@ -1503,7 +1459,7 @@ public class DungeonMap {
 					}
 				}
 
-				for (String missingPlayer : actualPlayers) {
+				for (String missingPlayer : playerNames) {
 					if (!playerList.contains(missingPlayer)) {
 						if (nonUsedIndexes.isEmpty()) break;
 						playerMarkerMapPositions.put(missingPlayer, positions.get(nonUsedIndexes.get(0)));
@@ -1520,119 +1476,82 @@ public class DungeonMap {
 			}
 		}
 
-		if (!roomMap.isEmpty() && startRoomX >= 0 && startRoomY >= 0) {
+		if (!roomMap.isEmpty() && startRoom.x >= 0 && startRoom.y >= 0) {
 			render(centerX, centerY);
 		}
-
-		this.colourMap = colourMap;
 	}
 
 	@SubscribeEvent
 	public void onWorldChange(WorldEvent.Load event) {
-		colourMap = null;
+		// TODO: clear the map data when the location changes
 	}
 
 	@SubscribeEvent
 	public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
 		if (!NotEnoughUpdates.INSTANCE.hasSkyblockScoreboard()) return;
-		if (event.type != RenderGameOverlayEvent.ElementType.ALL ||
-			!NotEnoughUpdates.INSTANCE.config.dungeonMap.dmEnable) {
+		if (event.type != RenderGameOverlayEvent.ElementType.ALL || !config.dmEnable) {
 			return;
 		}
 
-		if (Minecraft.getMinecraft().gameSettings.showDebugInfo ||
-			(Minecraft.getMinecraft().gameSettings.keyBindPlayerList.isKeyDown() &&
-				(!Minecraft.getMinecraft().isIntegratedServerRunning() ||
-					Minecraft.getMinecraft().thePlayer.sendQueue.getPlayerInfoMap().size() > 1))) {
+		if (mc.gameSettings.showDebugInfo ||
+			(mc.gameSettings.keyBindPlayerList.isKeyDown() &&
+				(!mc.isIntegratedServerRunning() ||	mc.thePlayer.sendQueue.getPlayerInfoMap().size() > 1))) {
 			return;
 		}
 
-		ItemStack stack = Minecraft.getMinecraft().thePlayer.inventory.mainInventory[8];
-		if (stack == null) {
+		ItemStack mapSlotStack = mc.thePlayer.inventory.mainInventory[8];
+		if (mapSlotStack == null) {
 			return;
 		}
 
-		if (Item.getIdFromItem(stack.getItem()) == NETHER_STAR_ITEM_ID) {
+		if (Item.getIdFromItem(mapSlotStack.getItem()) == NETHER_STAR_ITEM_ID) {
 			//This should clear the map if you're in the dungeon boss room
 			//so when you're holding a bow it doesn't show the map anymore
-			this.colourMap = null;
+			this.currentColorMap.clear();
 		}
 
-		boolean holdingBow = stack.getItem() == Items.arrow && colourMap != null;
-		if (!holdingBow & !(stack.getItem() instanceof ItemMap)) {
+		boolean holdingBow = mapSlotStack.getItem() == Items.arrow && this.currentColorMap.hasData();
+		if (!holdingBow & !(mapSlotStack.getItem() instanceof ItemMap)) {
 			return;
 		}
 
-		Color[][] colourMap = new Color[128][128];
+		Color[][] colourMap;
 
 		if (holdingBow) {
-			// Keep the previous colourMap, set to all black when there is no previous one
-			for (int x = 0; x < 128; x++) {
-				for (int y = 0; y < 128; y++) {
-					if (this.colourMap[x][y] != null) {
-						colourMap[x][y] = this.colourMap[x][y];
-					} else {
-						colourMap[x][y] = new Color(0, true);
-					}
-				}
+			// Set color map to all black if we have no data before the bow is equipped
+			// TODO: try this out by holding a bow
+			if (!currentColorMap.hasData()) {
+				currentColorMap.setColorData(new byte[128*128]); // defaults to 0
 			}
 		} else {
-			ItemMap map = (ItemMap) stack.getItem();
-			MapData mapData = map.getMapData(stack, Minecraft.getMinecraft().theWorld);
-
+			ItemMap map = (ItemMap) mapSlotStack.getItem();
+			MapData mapData = map.getMapData(mapSlotStack, mc.theWorld);
 			if (mapData == null) return;
-
 			mapDecorations = mapData.mapDecorations;
-			for (int i = 0; i < 16384; ++i) {
-				int x = i % 128;
-				int y = i / 128;
-
-				int j = mapData.colors[i] & 255;
-
-				int rgba;
-				Color c;
-				if (j < 4) {
-					// if i + y is odd, use alpha value of 24, otherwise 16
-					rgba = (i + i / 128 & 1) * 8 + 16 << 24;
-				} else {
-					rgba = MapColor.mapColorArray[j / 4].getMapColor(j & 3);
-				}
-
-				c = new Color(rgba, true);
-				colourMap[x][y] = c;
-			}
+			currentColorMap.setColorData(mapData.colors);
 		}
 
 		int roomSizeBlocks = 31;
-		Set<String> actualPlayers = new HashSet<>();
+		Set<String> playerNames = new HashSet<>();
 		int players = 0;
-		for (ScorePlayerTeam team : Minecraft.getMinecraft().thePlayer.getWorldScoreboard().getTeams()) {
+		for (ScorePlayerTeam team : mc.thePlayer.getWorldScoreboard().getTeams()) {
 			if (team.getTeamName().startsWith("a") && team.getMembershipCollection().size() == 1) {
-				String playerName = Iterables.get(team.getMembershipCollection(), 0);
-				boolean foundPlayer = false;
-				for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
-					if (player.getName().equals(playerName) &&
-						(player == Minecraft.getMinecraft().thePlayer || !player.isPlayerSleeping())) {
-						actualPlayers.add(playerName);
-						foundPlayer = true;
-						break;
-					}
-				}
-				if (!foundPlayer) actualPlayers.add(playerName);
+				String teamPlayerName = Iterables.get(team.getMembershipCollection(), 0);
+				playerNames.add(teamPlayerName);
 				if (++players >= 6) break;
 			}
 		}
 
-		Position pos = NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition;
+		Position mapPosFromConfig = config.dmPosition;
 
-		int size = 80 + Math.round(40 * NotEnoughUpdates.INSTANCE.config.dungeonMap.dmBorderSize);
+		int borderSize = 80 + Math.round(40 * config.dmBorderSize);
 		ScaledResolution scaledResolution = Utils.pushGuiScale(2);
 		renderMap(
-			pos.getAbsX(scaledResolution, size / 2) + size / 2,
-			pos.getAbsY(scaledResolution, size / 2) + size / 2,
-			colourMap,
+			mapPosFromConfig.getAbsX(scaledResolution, borderSize / 2) + borderSize / 2,
+			mapPosFromConfig.getAbsY(scaledResolution, borderSize / 2) + borderSize / 2,
+			currentColorMap,
 			roomSizeBlocks,
-			actualPlayers,
+			playerNames,
 			true,
 			event.partialTicks
 		);
@@ -1692,7 +1611,7 @@ public class DungeonMap {
 	}
 
 	public void showPlayerCoordinateData() {
-		EntityPlayerSP player = Minecraft.getMinecraft().thePlayer;
+		EntityPlayerSP player = mc.thePlayer;
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(EnumChatFormatting.YELLOW + "Player X Z Coordinates : ");
@@ -1712,95 +1631,7 @@ public class DungeonMap {
 			sb.append(EnumChatFormatting.WHITE + "<NONE>");
 		}
 
-		Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(sb.toString()));
+		mc.thePlayer.addChatMessage(new ChatComponentText(sb.toString()));
 		MiscUtils.copyToClipboard(StringUtils.cleanColour(sb.toString()));
-	}
-
-	public static class DungeonMapData {
-		private static final int MAP_SIZE = 128;
-		private static final int TRANSPARENT = MapColor.airColor.colorValue; // 0
-		private static final int GREEN_CHECK_COLOR = MapColor.foliageColor.colorValue; // 7
-		private static final int GREEN_ROOM_COLOR = MapColor.foliageColor.colorValue; // 7
-		private static final int RED_X_COLOR = MapColor.tntColor.colorValue; // 4
-		private static final int WATCHER_ROOM = MapColor.tntColor.colorValue; // 4
-		private static final int WHITE_CHECK_COLOR = MapColor.snowColor.colorValue; // 8
-		private static final int TRAP_ROOM_COLOR = MapColor.adobeColor.colorValue; // 15
-		private static final int PUZZLE_ROOM_COLOR = MapColor.magentaColor.colorValue; // 16
-		private static final int MINI_BOSS_ROOM = MapColor.yellowColor.colorValue; // 18
-		private static final int FAIRY_ROOM = MapColor.pinkColor.colorValue; // 20
-		private static final int UNKNOWN_ROOM_COLOR = MapColor.grayColor.colorValue; // 21
-		private static final int QUESTION_MARK_COLOR = MapColor.blackColor.colorValue; // 29
-
-		public static final Color[] colorMappingTable = populateColorMappingTable();
-
-		private static Color[] populateColorMappingTable() {
-			Color[] mappingTable = new Color[MapColor.mapColorArray.length];
-			for (int i = 0; i < MapColor.mapColorArray.length; i++) {
-				mappingTable[i] = new Color(MapColor.mapColorArray[i / 4].getMapColor(i & 3), true);
-			}
-			return mappingTable;
-		}
-
-		private byte[] currentColorBytes = null;
-		private byte[] previousColorBytes = null;
-		Color[][] currentColorMap = null;
-		BufferedImage bufferedimage = null;
-
-		/**
-		 * Updates current colors used by other methods in this class, but only if new colors are different.
-		 * <p>
-		 * Also in-place updates the {@link Color} array returned by {@link DungeonMapData#getCurrentColorMap()}</code>.
-		 *
-		 * @param newColors An array of 16384 <code>MapColor</code> bytes. The lowest two bits of each byte
-		 *                  are alpha, the upper six are an index into {@link MapColor#mapColorArray}.
-		 * @return false if the new colors match the previous colors, true otherwise
-		 */
-		public boolean setCurrentColors(byte[] newColors) {
-			if (newColors.length != 16384) {
-				throw new IllegalArgumentException("unexpected color array length");
-			}
-
-			if (Arrays.equals(currentColorBytes, newColors)) {
-				return false;
-			}
-
-			previousColorBytes = currentColorBytes;
-			currentColorBytes = newColors.clone();
-			if (currentColorMap == null) {
-				currentColorMap = new Color[MAP_SIZE][MAP_SIZE];
-				bufferedimage = new BufferedImage(MAP_SIZE, MAP_SIZE, BufferedImage.TYPE_INT_ARGB);
-			}
-
-			for (int i = 0; i < MAP_SIZE * MAP_SIZE; ++i) {
-				int x = i % MAP_SIZE;
-				int y = i / MAP_SIZE;
-
-				int j = currentColorBytes[i] & 255;
-
-				currentColorMap[x][y] = colorMappingTable[j];
-				bufferedimage.setRGB(x, y, currentColorMap[x][y].getRGB());
-			}
-
-			return true;
-		}
-
-		public Color[][] getCurrentColorMap() {
-			if (currentColorBytes == null) {
-				throw new IllegalStateException("setCurrentColors must be called before getColorMap");
-			}
-
-			return currentColorMap;
-		}
-
-		public void saveMapToPngFile(String fileName) {
-			if (bufferedimage != null) {
-				File dungeonMapFile = new File(fileName);
-				try {
-					ImageIO.write(bufferedimage, "png", (File)dungeonMapFile);
-				} catch (IOException e) {
-					// Do nothing
-				}
-			}
-		}
 	}
 }

@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.commands.Commands;
 import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.cosmetics.CapeManager;
+import io.github.moulberry.notenoughupdates.dungeons.ColorMap;
 import io.github.moulberry.notenoughupdates.dungeons.DungeonMap;
 import io.github.moulberry.notenoughupdates.listener.ChatListener;
 import io.github.moulberry.notenoughupdates.listener.ItemTooltipListener;
@@ -140,7 +141,7 @@ public class NotEnoughUpdates {
 	public long lastOpenedGui = 0;
 	public Commands commands;
 	public boolean packDevEnabled = false;
-	public Color[][] colourMap = null;
+	public ColorMap colorMap = null;
 	private File configFile;
 	private long lastChatMessage = 0;
 	private long secondLastChatMessage = 0;
