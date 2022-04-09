@@ -7,7 +7,7 @@ import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.core.config.Position;
 import io.github.moulberry.notenoughupdates.core.util.MiscUtils;
 import io.github.moulberry.notenoughupdates.core.util.StringUtils;
-import io.github.moulberry.notenoughupdates.dungeons.ColorMap.ColorRoom;
+import io.github.moulberry.notenoughupdates.dungeons.ColorMap.ColoredArea;
 import io.github.moulberry.notenoughupdates.options.seperateSections.DungeonMapConfig;
 import io.github.moulberry.notenoughupdates.util.NEUResourceManager;
 import io.github.moulberry.notenoughupdates.util.SpecialColour;
@@ -110,9 +110,9 @@ public class DungeonMap {
 
 	private static final int NETHER_STAR_ITEM_ID = 399;
 
-	private final ColorMap currentColorMap = new ColorMap();
+	private final ColorMap currentColorMap = new ColorMap(10, 20, 4, 5);
 	private final HashMap<RoomOffset, Room> roomMap = new HashMap<>();
-	private ColorRoom startRoom = null; 
+	private ColoredArea startRoom = null;
 	private int connectorSize = 5;
 	private int roomSize = 0;
 
@@ -1189,7 +1189,8 @@ public class DungeonMap {
 		}
 
 		if (startRoom == null || roomSize <= 0) {
-			if (!colorMap.hasRoomWithColor(ColorMap.START_ROOM)) {
+			// TODO: fix this
+			if (!colorMap.hasRoomWithColor(ColorMap.START_ROOM.colorIndex << 2)) {
 				failMap = true;
 				return;
 			}

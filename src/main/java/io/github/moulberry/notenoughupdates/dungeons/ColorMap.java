@@ -1,5 +1,7 @@
 package io.github.moulberry.notenoughupdates.dungeons;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.minecraft.block.material.MapColor;
 
 import javax.imageio.ImageIO;
@@ -7,34 +9,111 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.stream.Stream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ColorMap {
 	public static final int MAP_SIZE = 128;
-	public static final int TRANSPARENT = MapColor.airColor.colorValue; // 0
-	public static final int GREEN_CHECK_COLOR = MapColor.foliageColor.colorValue; // 7
-	public static final int START_ROOM = MapColor.foliageColor.colorValue; // 7
-	public static final int RED_X_COLOR = MapColor.tntColor.colorValue; // 4
-	public static final int WATCHER_ROOM = MapColor.tntColor.colorValue; // 4
-	public static final int WHITE_CHECK_COLOR = MapColor.snowColor.colorValue; // 8
-	public static final int TRAP_ROOM_COLOR = MapColor.adobeColor.colorValue; // 15
-	public static final int PUZZLE_ROOM = MapColor.magentaColor.colorValue; // 16
-	public static final int MINI_BOSS_ROOM = MapColor.yellowColor.colorValue; // 18
-	public static final int FAIRY_ROOM = MapColor.pinkColor.colorValue; // 20
-	public static final int UNKNOWN_ROOM_COLOR = MapColor.grayColor.colorValue; // 21
-	public static final int REGULAR_ROOM = MapColor.brownColor.colorValue; // 26
-	public static final int QUESTION_MARK = MapColor.blackColor.colorValue; // 29
+	private static final int ROOM_MIN_SIZE_DEFAULT = 10;
+	private static final int ROOM_MAX_SIZE_DEFAULT = 62;
+	private static final int CONNECTOR_MIN_SIZE_DEFAULT = 4;
+	private static final int CONNECTOR_MAX_SIZE_DEFAULT = 7;
+	private static final int ALLOWED_MISMATCHES_WITHIN_ROOM = 3;
+	public static final MapColor TRANSPARENT = MapColor.airColor;
+	public static final MapColor RED_X = MapColor.tntColor;
+	public static final MapColor WATCHER_ROOM = MapColor.tntColor;
+	public static final MapColor GREEN_CHECK = MapColor.foliageColor;
+	public static final MapColor START_ROOM = MapColor.foliageColor;
+	public static final MapColor WHITE_CHECK = MapColor.snowColor;
+	public static final MapColor TRAP_ROOM = MapColor.adobeColor;
+	public static final MapColor PUZZLE_ROOM = MapColor.magentaColor;
+	public static final MapColor MINI_BOSS_ROOM = MapColor.yellowColor;
+	public static final MapColor FAIRY_ROOM = MapColor.pinkColor;
+	public static final MapColor UNKNOWN_ROOM = MapColor.grayColor;
+	public static final MapColor REGULAR_ROOM = MapColor.brownColor;
+	public static final MapColor QUESTION_MARK = MapColor.blackColor;
 
-	public static final int ALPHA_255 = 0x11;
-	public static final int ALPHA_170 = 0x10;
-	public static final int ALPHA_85 = 0x01;
-	public static final int ALPHA_NONE = 0x00;
+	private static final HashMap<Integer, MapColor> COLOR_INDEX_MAP = new HashMap<Integer, MapColor>() {{
+		put(0, TRANSPARENT);
+		put(4, WATCHER_ROOM); // RED_X
+		put(7, START_ROOM); // GREEN_CHECK
+		put(8, WHITE_CHECK);
+		put(15, TRAP_ROOM);
+		put(16, PUZZLE_ROOM);
+		put(18, MINI_BOSS_ROOM);
+		put(20, FAIRY_ROOM);
+		put(21, UNKNOWN_ROOM);
+		put(26, REGULAR_ROOM);
+		put(29, QUESTION_MARK);
+	}};
+	private static final HashMap<Integer, MapColor> ARGB_MAP = new HashMap<Integer, MapColor>() {{
+		put(0x10000000, TRANSPARENT);
+		put(0x18000000, TRANSPARENT);
+		put(0xffe5e533, MINI_BOSS_ROOM);
+		put(0xff72431b, REGULAR_ROOM);
+		put(0xffb24cd8, PUZZLE_ROOM);
+		put(0xff007c00, START_ROOM);
+		put(0xffffffff, WHITE_CHECK);
+		put(0xfff27fa5, FAIRY_ROOM);
+		put(0xffff0000, WATCHER_ROOM);
+		put(0xff000000, QUESTION_MARK);
+	}};
+	private static final HashMap<Integer, String> ARGB_DEBUG_MAP = new HashMap<Integer, String>() {{
+		put(0x10000000, "_");
+		put(0x18000000, "_");
+		put(0xffe5e533, "B");
+		put(0xff72431b, "R");
+		put(0xffb24cd8, "P");
+		put(0xff007c00, "S");
+		put(0xffffffff, " ");
+		put(0xfff27fa5, "F");
+		put(0xffff0000, "W");
+		put(0xff000000, "?");
+		// TODO: Add trap room and anything else missing
+	}};
+	private static final HashMap<Integer, String> COLOR_INDEX_DEBUG_MAP = new HashMap<Integer, String>() {{
+		put(TRANSPARENT.colorIndex, "_");
+		put(MINI_BOSS_ROOM.colorIndex, "B");
+		put(REGULAR_ROOM.colorIndex, "R");
+		put(PUZZLE_ROOM.colorIndex, "P");
+		put(START_ROOM.colorIndex, "S");
+		put(WHITE_CHECK.colorIndex, " ");
+		put(FAIRY_ROOM.colorIndex, "F");
+		put(WATCHER_ROOM.colorIndex, "W");
+		put(TRAP_ROOM.colorIndex, "T");
+		put(QUESTION_MARK.colorIndex, "?");
+	}};
 
-	public static final Color[] colorMappingTable = createColorMappingTable();
+	public final Color[] colorIndexToColorMap = createColorIndexToColorMap();
+	public static Writer debugJsonParserWriter = null;
+	public static Writer debugRoomParsingWriter = null;
 
-	private static Color[] createColorMappingTable() {
+	private byte[] currentColorBytes = null;
+	private Color[][] currentColorMap = null;
+	private BufferedImage bufferedimage = null;
+	private boolean hasData = false;
+	private final ArrayList<ColoredArea> rooms = new ArrayList<>();
+	private final ArrayList<ColoredArea> connectors = new ArrayList<>();
+	private int minRoomSize;
+	private int maxRoomSize;
+	private int minConnectorSize;
+	private int maxConnectorSize;
+
+	public ColorMap() {
+		this(ROOM_MIN_SIZE_DEFAULT, ROOM_MAX_SIZE_DEFAULT, CONNECTOR_MIN_SIZE_DEFAULT, CONNECTOR_MAX_SIZE_DEFAULT);
+	}
+
+	public ColorMap(int minRoomSize, int maxRoomSize, int minConnectorSize, int maxConnectorSize) {
+		this.minRoomSize = minRoomSize;
+		this.maxRoomSize = maxRoomSize;
+		this.minConnectorSize = minConnectorSize;
+		this.maxConnectorSize = maxConnectorSize;
+	}
+
+	private static Color[] createColorIndexToColorMap() {
 		Color[] mappingTable = new Color[MapColor.mapColorArray.length];
 		for (int i = 0; i < MapColor.mapColorArray.length; i++) {
 			mappingTable[i] = new Color(MapColor.mapColorArray[i / 4].getMapColor(i & 3), true);
@@ -42,15 +121,49 @@ public class ColorMap {
 		return mappingTable;
 	}
 
-	private byte[] currentColorBytes = null;
-	private Color[][] currentColorMap = null;
-	private BufferedImage bufferedimage = null;
-	private boolean hasData = false;
+	public static int getColorIndexFromARGB(int color) {
+		 MapColor mapColor = ARGB_MAP.get(color);
+		 if (mapColor != null) return mapColor.colorIndex;
+		 throw new IllegalArgumentException(String.format("Invalid color value: %d", color));
+	}
 
-	private ArrayList<ColorRoom> rooms = new ArrayList<>();
+	public static ColorMap getColorMapFromJson(JsonObject json) {
+		try {
+			ColorMap colorMap = new ColorMap();
+			byte[][] colorData = ColorMap.getBlackMap2D();
 
-	public static byte[] getBlackMap1D() {
-		return new byte[MAP_SIZE * MAP_SIZE];
+			StringBuilder sb = null;
+			if (debugJsonParserWriter != null) {
+				sb = new StringBuilder();
+			}
+			int count = 0;
+			for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
+				count++;
+				int x = Integer.parseInt(entry.getKey().split(":")[0]);
+				int y = Integer.parseInt(entry.getKey().split(":")[1]);
+
+				// TODO: change the file to be map-style byte colors
+				int color = entry.getValue().getAsInt();
+				if (sb != null) {
+					sb.append(getArgbDebugString(color));
+					if (count % 128 == 0){
+						sb.append("\n");
+					}
+				}
+				color = getColorIndexFromARGB(color);
+				colorData[x][y] = (byte)(color & 0xff);
+			}
+
+			if (sb != null) {
+				debugJsonParserWriter.write(sb.toString());
+			}
+			colorMap.setColorData(colorData);
+			return colorMap;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 
 	/**
@@ -65,12 +178,25 @@ public class ColorMap {
 		return new byte[MAP_SIZE][MAP_SIZE];
 	}
 
+	public static byte[] getBlackMap1D() {
+		return new byte[MAP_SIZE * MAP_SIZE];
+	}
+
 	public void clear() {
 		hasData = false;
 		rooms.clear();
+		connectors.clear();
 	}
 
-	public int getColorWithAlpha(int x, int y) {
+	public int getRoomCount() {
+		return rooms != null ? rooms.size() : -1;
+	}
+
+	public int getConnectorCount() {
+		return rooms != null ? connectors.size() : -1;
+	}
+
+	public int getColorIndexByCoords(int x, int y) {
 		if (x > MAP_SIZE || x < 0 || y > MAP_SIZE || y < 0) {
 			throw new IllegalArgumentException("Invalid map index");
 		}
@@ -86,92 +212,196 @@ public class ColorMap {
 		return (alpha * 64)-1;
 	}
 
-	public void FindCompoundRooms() {
-		// TODO: Check for rooms that should be considered a single room
+	public void computeAdjacencies() {
+		// TODO: implement this
 	}
 
-	// Gets a room given the upper-left coordinates of the room
-	private ColorRoom discoverRoomAtCoords(int startX, int startY, int expectedColorWithAlpha) {
-		ColorRoom theRoom = new ColorRoom(startX, startY, expectedColorWithAlpha, 0, 0);
+	// Gets a colored area given the upper-left coordinates of the area
+	private ColoredArea discoverAreaAtCoords(int startX, int startY, int expectedColorIndex) {
+		ColoredArea theArea = new ColoredArea(
+			ColoredAreaType.UNKNOWN,
+			startX, startY,
+			expectedColorIndex,
+			0, 0);
 
 		for (int yIndex = startY; yIndex < MAP_SIZE; yIndex++) {
 			int maxX;
-			if (theRoom.width == 0) {
+			if (theArea.width == 0) {
 				maxX = MAP_SIZE-1;
 			} else {
-				maxX = theRoom.x + theRoom.width - 1;
+				maxX = theArea.x + theArea.width - 1;
 			}
 			int currentRowWidth = 0;
 			int xIndex = startX;
+			int ignoredCount = 0;
 			while (xIndex <= maxX) {
-				if (getColorWithAlpha(xIndex, yIndex) == expectedColorWithAlpha) {
+				int actualColorIndex = getColorIndexByCoords(xIndex, yIndex);
+				if (actualColorIndex == expectedColorIndex) {
 					currentRowWidth++;
 					xIndex++;
+					ignoredCount = 0;
+				} else if (ignoredCount < ALLOWED_MISMATCHES_WITHIN_ROOM &&
+					(actualColorIndex == WHITE_CHECK.colorIndex  ||
+						actualColorIndex == GREEN_CHECK.colorIndex ||
+						actualColorIndex == RED_X.colorIndex)) {
+					ignoredCount++;
+					currentRowWidth++;
+					xIndex++;
+					continue;
 				} else {
+					currentRowWidth -= ignoredCount;
 					break;
 				}
 			}
 
-			if (theRoom.width == 0) {
-				theRoom.width = currentRowWidth;
-				continue;
-			}
-
-			if (currentRowWidth != theRoom.width) {
+			// Set the width on the first row
+			if (theArea.width == 0) {
+				theArea.width = currentRowWidth;
+			} else if (currentRowWidth != theArea.width) {
 				break;
 			}
 
-			theRoom.height++;
+			theArea.height++;
 		}
 
-		return theRoom;
+		// Work from larger to smaller since an over-sized connector looks like a room
+		if (theArea.width >= minRoomSize && theArea.width <= maxRoomSize &&
+				theArea.height >= minRoomSize && theArea.height <= maxRoomSize) {
+			theArea.type = ColoredAreaType.ROOM;
+			return theArea;
+		}
+
+		// Bail if it's not a connector, check both dimensions since one of them
+		// will be invalid since it extends into one of the connected rooms
+		if (theArea.width < minConnectorSize && theArea.width > maxConnectorSize &&
+				theArea.height < minConnectorSize && theArea.height > maxConnectorSize) {
+			return null;
+		}
+
+		theArea.type = ColoredAreaType.CONNECTOR;
+
+		// Trim the connector to ensure they don't extend into adjacent rooms
+		// NOTE:
+		// 	Trimming assumes that the map always has at least a one pixel border
+		// 	and doesn't check for going off the map.
+		boolean trimmedWidth = false;
+		for (int x = theArea.x; x < MAP_SIZE; x++) {
+			if (getColorIndexByCoords(x, theArea.y - 1) != TRANSPARENT.colorIndex ||
+					getColorIndexByCoords(x, theArea.y + theArea.height) != TRANSPARENT.colorIndex) {
+				if (x != theArea.x && x != theArea.x + theArea.width) {
+					theArea.width = x - theArea.x;
+					trimmedWidth = true;
+				}
+				break;
+			}
+		}
+
+		// Trim height
+		for (int y = theArea.y; y < MAP_SIZE; y++) {
+			if (getColorIndexByCoords(theArea.x - 1, y) != TRANSPARENT.colorIndex ||
+					getColorIndexByCoords(theArea.x + theArea.width, y) != TRANSPARENT.colorIndex) {
+				if (y != theArea.y && y != theArea.y + theArea.height) {
+					theArea.height = y - theArea.y;
+					if (trimmedWidth) {
+						throw new IllegalStateException(
+							String.format("A connector should not require trimming both dimensions. x=%d y=%d w=%d h=%d",
+								theArea.x, theArea.y, theArea.width, theArea.height
+							));
+					}
+				}
+				break;
+			}
+		}
+
+		return theArea;
 	}
 
-	public ColorRoom getRoomByCoords(int x, int y) {
-		for (ColorRoom room : rooms) {
-			if (x >= room.x && x <= room.x + room.width &&
-					y >= room.y && y <= room.y + room.height) {
-				return room;
+	private ColoredArea getMatchingAreaByCoords(ArrayList<ColoredArea> areas, int x, int y) {
+		for (ColoredArea area : areas) {
+			if (x >= area.x && x < area.x + area.width &&
+				y >= area.y && y < area.y + area.height) {
+				return area;
 			}
 		}
 
 		return null;
 	}
 
+	public ColoredArea getRoomByCoords(int x, int y) {
+		return getMatchingAreaByCoords(rooms, x, y);
+	}
+
+	public ColoredArea getConnectorByCoords(int x, int y) {
+		return getMatchingAreaByCoords(connectors, x, y);
+	}
+
+	public ColoredArea getAnyAreaByCoords(int x, int y) {
+		ColoredArea theArea = getRoomByCoords(x, y);
+		return theArea != null ? theArea : getConnectorByCoords(x,y);
+	}
+
+	public ArrayList<ColoredArea> getRooms() {
+		return rooms;
+	}
+
+	public ArrayList<ColoredArea> getConnectors() {
+		return connectors;
+	}
+
 	public boolean hasRoomWithColor(int color) {
-		for (ColorRoom room : rooms) {
-			if (room.color == color) return true;
+		for (ColoredArea room : rooms) {
+			if (room.colorIndex == color) return true;
 		}
 
 		return false;
 	}
 
+	private void writeMap(Writer writer) {
+		if (writer == null) return;
+		StringBuilder sbValues;
+		sbValues = new StringBuilder();
+		for (int y = 0; y < ColorMap.MAP_SIZE; y++) {
+			for (int x = 0; x < ColorMap.MAP_SIZE; x++) {
+				sbValues.append(getColorIndexDebugString(getColorIndexByCoords(x, y)));
+			}
+			sbValues.append("\n");
+		}
+		try {
+			writer.write(sbValues.toString());
+		} catch (IOException e) {
+			// ignored
+		}
+	}
+
 	private void rediscoverRooms() {
 		rooms.clear();
-		ColorRoom theRoom = null;
+		writeMap(debugRoomParsingWriter);
 
 		// Iterate rows, top to bottom - looking for a non-background color
 		for (int y = 0; y < ColorMap.MAP_SIZE; y++) {
 			for (int x = 0; x < ColorMap.MAP_SIZE; x++) {
-				int colorWithAlpha = getColorWithAlpha(x, y);
-				// TODO: Check whether this works
-				theRoom = getRoomByCoords(x, y);
-				if (theRoom == null && colorWithAlpha != TRANSPARENT) {
-					theRoom = discoverRoomAtCoords(x, y, colorWithAlpha);
+				int colorIndex = getColorIndexByCoords(x, y);
+				if (colorIndex != TRANSPARENT.colorIndex) {
+					ColoredArea intersectingArea = getAnyAreaByCoords(x, y);
+					if (intersectingArea != null) {
+						x += intersectingArea.width - 1;
+						continue;
+					}
+
+					ColoredArea newArea = discoverAreaAtCoords(x, y, colorIndex);
+					if (newArea != null) {
+						x += newArea.width - 1;
+						if (newArea.type == ColoredAreaType.CONNECTOR) {
+							connectors.add(newArea);
+						} else if (newArea.type == ColoredAreaType.ROOM) {
+							rooms.add(newArea);
+						} else {
+							throw new IllegalStateException("ColoredAreaType != UNKNOWN assertion failed");
+						}
+
+						continue;
+					}
 				}
-
-				if (theRoom != null) {
-					x += theRoom.width - 1;
-
-					// TODO: do this filtering somewhere else - min is 10, max is 20
-//					if (theRoom.width < minWidth || theRoom.width > maxWidth ||
-//						theRoom.height < minHeight || theRoom.height > maxHeight) {
-//						theRoom = null;
-//					}
-
-					rooms.add(theRoom);
-				}
-
 			}
 		}
 	}
@@ -189,9 +419,9 @@ public class ColorMap {
 	public boolean setColorData(byte[][] newColors)
 	{
 		byte[] bytes1D = new byte[16384];
-		for (int i1 = 0; i1 < 128; i1++) {
-			for (int i2 = 0; i2 < 128; i2++) {
-				bytes1D[i1 * 128 + i2] = newColors[i1][i2];
+		for (int y = 0; y < 128; y++) {
+			for (int x = 0; x < 128; x++) {
+				bytes1D[y * 128 + x] = newColors[x][y];
 			}
 		}
 
@@ -219,14 +449,12 @@ public class ColorMap {
 
 			int j = currentColorBytes[i] & 255;
 
-			currentColorMap[x][y] = colorMappingTable[j];
+			currentColorMap[x][y] = colorIndexToColorMap[j];
 			bufferedimage.setRGB(x, y, currentColorMap[x][y].getRGB());
 		}
 
-		hasData = true;
-
 		rediscoverRooms();
-
+		hasData = true;
 		return true;
 	}
 
@@ -257,23 +485,45 @@ public class ColorMap {
 		return this.hasData;
 	}
 
-	public class ColorRoom {
+	public static String getColorIndexDebugString(int color) {
+		String debugString = COLOR_INDEX_DEBUG_MAP.get(color);
+		if (debugString != null) return debugString;
+		throw new IllegalArgumentException(String.format("Invalid color value: %d", color));
+	}
+
+	public static String getArgbDebugString(int color) {
+		String debugString = ARGB_DEBUG_MAP.get(color);
+		if (debugString != null) return debugString;
+		throw new IllegalArgumentException(String.format("Invalid color value: %d", color));
+	}
+
+	public enum ColoredAreaType {
+		CONNECTOR,
+		ROOM,
+		UNKNOWN
+	}
+
+	public class ColoredArea {
+		public ColoredAreaType type;
 		public int x;
 		public int y;
-		public int color;
+		public int colorIndex;
 		public int height;
 		public int width;
 
-		ColorRoom(int x, int y, int color, int height, int width) {
+
+		ColoredArea(ColoredAreaType type, int x, int y, int colorIndex, int height, int width) {
+			this.type = type;
 			this.x = x;
 			this.y = y;
-			this.color = color;
+			this.colorIndex = colorIndex;
 			this.height = height;
 			this.width = width;
 		}
 
-		public int maxX() {
-			return this.x + this.width -1;
+		public String toString() {
+			return String.format("x=%d y=%d colorIndex=%d height=%d width=%d",
+				x, y, colorIndex, height, width);
 		}
 	}
 }
