@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.dungeons.ColorMap.ColoredArea;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import scala.actors.threadpool.Arrays;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -16,8 +17,16 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
+import static io.github.moulberry.notenoughupdates.dungeons.ColorMap.*;
+
 class ColorMapTest {
 	ClassLoader classLoader = getClass().getClassLoader();
+
+	public TestMapInfo f1MapTestInfo = new TestMapInfo("assets/notenoughupdates/maps/F1Full.json",
+		new ArrayList<ColoredArea>(Arrays.asList(new ColoredArea[] {
+			new ColoredArea(ColoredAreaType.ROOM, 11, 22, REGULAR_ROOM.colorIndex, 40, 40)
+		})),
+		new ArrayList<ColoredArea>(Arrays.asList(new ColoredArea[] {})));
 
 	private JsonObject loadMapAsJson(String mapPath) {
 		BufferedReader reader = new BufferedReader(
@@ -32,13 +41,11 @@ class ColorMapTest {
 	@Test
 	void generate_output_text_files() throws IOException {
 		JsonObject json = loadMapAsJson("assets/notenoughupdates/maps/F1Full.json");
-		BufferedWriter writer1 = new BufferedWriter(new FileWriter("testoutput1.txt"));
-		BufferedWriter writer2 = new BufferedWriter(new FileWriter("testoutput2.txt"));
-		ColorMap.debugJsonParserWriter = writer1;
-		ColorMap.debugRoomParsingWriter = writer2;
-		ColorMap colorMap = ColorMap.getColorMapFromJson(json);
-		writer1.close();
-		writer2.close();
+		BufferedWriter jsonParserWriter = new BufferedWriter(new FileWriter("testoutput1.txt"));
+		BufferedWriter roomParsingWriter = new BufferedWriter(new FileWriter("testoutput2.txt"));
+		ColorMap colorMap = ColorMap.getColorMapFromJson(json, jsonParserWriter, roomParsingWriter);
+		jsonParserWriter.close();
+		roomParsingWriter.close();
 		Assertions.assertNotNull(colorMap);
 		System.out.printf("\n%d rooms:\n", colorMap.getRoomCount());
 		for (ColoredArea room : colorMap.getRooms()) {
@@ -65,9 +72,7 @@ class ColorMapTest {
 		JsonObject json = loadMapAsJson("assets/notenoughupdates/maps/F1Full.json");
 		StringWriter jsonParserWriter = new StringWriter();
 		StringWriter roomParsingWriter = new StringWriter();
-		ColorMap.debugJsonParserWriter = jsonParserWriter;
-		ColorMap.debugRoomParsingWriter = roomParsingWriter;
-		ColorMap colorMap = ColorMap.getColorMapFromJson(json);
+		ColorMap colorMap = ColorMap.getColorMapFromJson(json, jsonParserWriter, roomParsingWriter);
 		Assertions.assertNotNull(colorMap);
 		Assertions.assertEquals(jsonParserWriter.toString(), roomParsingWriter.toString());
 	}
@@ -137,5 +142,17 @@ class ColorMapTest {
 	@Test
 	void red_x_in_area_is_ignored() {
 
+	}
+
+	private static class TestMapInfo {
+		String mapName;
+		ArrayList<ColoredArea> rooms = new ArrayList<>();
+		ArrayList<ColoredArea> connectors = new ArrayList<>();
+
+		TestMapInfo(String mapName, ArrayList<ColoredArea> rooms, ArrayList<ColoredArea> connectors) {
+			this.mapName = mapName;
+			this.rooms = rooms;
+			this.connectors = connectors;
+		}
 	}
 }

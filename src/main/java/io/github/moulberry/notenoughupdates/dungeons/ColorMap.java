@@ -88,8 +88,7 @@ public class ColorMap {
 	}};
 
 	public final Color[] colorIndexToColorMap = createColorIndexToColorMap();
-	public static Writer debugJsonParserWriter = null;
-	public static Writer debugRoomParsingWriter = null;
+	public Writer debugRoomParsingWriter = null;
 
 	private byte[] currentColorBytes = null;
 	private Color[][] currentColorMap = null;
@@ -97,10 +96,10 @@ public class ColorMap {
 	private boolean hasData = false;
 	private final ArrayList<ColoredArea> rooms = new ArrayList<>();
 	private final ArrayList<ColoredArea> connectors = new ArrayList<>();
-	private int minRoomSize;
-	private int maxRoomSize;
-	private int minConnectorSize;
-	private int maxConnectorSize;
+	private final int minRoomSize;
+	private final int maxRoomSize;
+	private final int minConnectorSize;
+	private final int maxConnectorSize;
 
 	public ColorMap() {
 		this(ROOM_MIN_SIZE_DEFAULT, ROOM_MAX_SIZE_DEFAULT, CONNECTOR_MIN_SIZE_DEFAULT, CONNECTOR_MAX_SIZE_DEFAULT);
@@ -128,8 +127,13 @@ public class ColorMap {
 	}
 
 	public static ColorMap getColorMapFromJson(JsonObject json) {
+		return getColorMapFromJson(json, null, null);
+	}
+
+	public static ColorMap getColorMapFromJson(JsonObject json, Writer debugJsonParserWriter, Writer roomParsingWriter) {
 		try {
 			ColorMap colorMap = new ColorMap();
+			colorMap.debugRoomParsingWriter = roomParsingWriter;
 			byte[][] colorData = ColorMap.getBlackMap2D();
 
 			StringBuilder sb = null;
@@ -189,11 +193,11 @@ public class ColorMap {
 	}
 
 	public int getRoomCount() {
-		return rooms != null ? rooms.size() : -1;
+		return rooms.size();
 	}
 
 	public int getConnectorCount() {
-		return rooms != null ? connectors.size() : -1;
+		return connectors.size();
 	}
 
 	public int getColorIndexByCoords(int x, int y) {
@@ -240,6 +244,7 @@ public class ColorMap {
 					currentRowWidth++;
 					xIndex++;
 					ignoredCount = 0;
+					continue;
 				} else if (ignoredCount < ALLOWED_MISMATCHES_WITHIN_ROOM &&
 					(actualColorIndex == WHITE_CHECK.colorIndex  ||
 						actualColorIndex == GREEN_CHECK.colorIndex ||
@@ -248,10 +253,9 @@ public class ColorMap {
 					currentRowWidth++;
 					xIndex++;
 					continue;
-				} else {
-					currentRowWidth -= ignoredCount;
-					break;
 				}
+				currentRowWidth -= ignoredCount;
+				break;
 			}
 
 			// Set the width on the first row
@@ -398,8 +402,6 @@ public class ColorMap {
 						} else {
 							throw new IllegalStateException("ColoredAreaType != UNKNOWN assertion failed");
 						}
-
-						continue;
 					}
 				}
 			}
@@ -474,7 +476,7 @@ public class ColorMap {
 		if (bufferedimage != null) {
 			File dungeonMapFile = new File(fileName);
 			try {
-				ImageIO.write(bufferedimage, "png", (File)dungeonMapFile);
+				ImageIO.write(bufferedimage, "png", dungeonMapFile);
 			} catch (IOException e) {
 				// Do nothing
 			}
@@ -503,7 +505,7 @@ public class ColorMap {
 		UNKNOWN
 	}
 
-	public class ColoredArea {
+	public static class ColoredArea {
 		public ColoredAreaType type;
 		public int x;
 		public int y;
