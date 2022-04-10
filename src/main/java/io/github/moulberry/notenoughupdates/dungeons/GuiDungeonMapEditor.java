@@ -432,12 +432,12 @@ public class GuiDungeonMapEditor extends GuiScreen {
 
 		GlStateManager.color(1, 1, 1, 1);
 
-		demoMap.setMapDecorations(decorations);
+		// TODO: Fix this
+		//demoMap.setMapDecorations(decorations);
 		demoMap.renderMap(
 			guiLeft + 357,
 			guiTop + 125,
 			NotEnoughUpdates.INSTANCE.colorMap,
-			0,
 			new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
 			false,
 			partialTicks);
@@ -585,12 +585,12 @@ public class GuiDungeonMapEditor extends GuiScreen {
 					NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition,
 					size, size, () -> {
 					ScaledResolution scaledResolution = Utils.pushGuiScale(2);
-					demoMap.setMapDecorations(decorations);
+					// TODO: Fix this
+					//demoMap.setMapDecorations(decorations);
 					demoMap.renderMap(
 						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsX(scaledResolution, size) + size / 2,
 						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsY(scaledResolution, size) + size / 2,
 						NotEnoughUpdates.INSTANCE.colorMap,
-						0,
 						new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
 						false,
 						0

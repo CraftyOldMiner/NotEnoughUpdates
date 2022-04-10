@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.dungeons.ColorMap.ColoredArea;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import scala.actors.threadpool.Arrays;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -22,11 +21,13 @@ import static io.github.moulberry.notenoughupdates.dungeons.ColorMap.*;
 class ColorMapTest {
 	ClassLoader classLoader = getClass().getClassLoader();
 
-	public TestMapInfo f1MapTestInfo = new TestMapInfo("assets/notenoughupdates/maps/F1Full.json",
-		new ArrayList<ColoredArea>(Arrays.asList(new ColoredArea[] {
-			new ColoredArea(ColoredAreaType.ROOM, 11, 22, REGULAR_ROOM.colorIndex, 40, 40)
-		})),
-		new ArrayList<ColoredArea>(Arrays.asList(new ColoredArea[] {})));
+		// TODO: implement this once it is confirmed that F1 is updated
+	//	public TestMapInfo f1MapTestInfo = new TestMapInfo("assets/notenoughupdates/maps/F1Full.json",
+//		new ArrayList<ColoredArea>(Arrays.asList(new ColoredArea[] {
+//			new ColoredArea(ColoredAreaType.ROOM, 11, 22, REGULAR_ROOM.colorIndex, 40, 40),
+//			new ColoredArea(ColoredAreaType.ROOM, 66, 22, START_ROOM.colorIndex, 18, 18),
+//		})),
+//		new ArrayList<ColoredArea>(Arrays.asList(new ColoredArea[] {})));
 
 	private JsonObject loadMapAsJson(String mapPath) {
 		BufferedReader reader = new BufferedReader(
@@ -143,6 +144,18 @@ class ColorMapTest {
 	void red_x_in_area_is_ignored() {
 
 	}
+
+	@Test
+	void lastUpdatedMillis_is_updated_when_map_changed() {
+
+	}
+
+	@Test
+	void lastUpdatedMillis_is_not_updated_when_map_not_changed() {
+
+	}
+
+	// TODO: Add tests for decorators
 
 	private static class TestMapInfo {
 		String mapName;

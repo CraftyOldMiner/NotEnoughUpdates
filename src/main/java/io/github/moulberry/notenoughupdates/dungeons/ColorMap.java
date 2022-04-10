@@ -3,6 +3,7 @@ package io.github.moulberry.notenoughupdates.dungeons;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.block.material.MapColor;
+import net.minecraft.util.Vec4b;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -15,41 +16,61 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.github.moulberry.notenoughupdates.dungeons.ColorMap.DungeonMapColor.*;
+
 public class ColorMap {
+	// public static final
 	public static final int MAP_SIZE = 128;
+
+	public enum DungeonMapColor {
+		TRANSPARENT (MapColor.airColor),
+		RED_X (MapColor.tntColor),
+		WATCHER_ROOM (MapColor.tntColor),
+		GREEN_CHECK (MapColor.foliageColor),
+		START_ROOM (MapColor.foliageColor),
+		WHITE_CHECK (MapColor.snowColor),
+		TRAP_ROOM (MapColor.adobeColor),
+		PUZZLE_ROOM (MapColor.magentaColor),
+		MINI_BOSS_ROOM (MapColor.yellowColor),
+		FAIRY_ROOM (MapColor.pinkColor),
+		UNKNOWN_ROOM (MapColor.grayColor),
+		REGULAR_ROOM (MapColor.brownColor),
+		QUESTION_MARK (MapColor.blackColor);
+
+		private final MapColor mapColor;   // in kilograms
+
+		DungeonMapColor(MapColor mapColor) {
+			this.mapColor = mapColor;
+		}
+		
+		public int colorIndex() {
+			return mapColor.colorIndex;
+		}
+	};
+
+	// private static final
 	private static final int ROOM_MIN_SIZE_DEFAULT = 10;
 	private static final int ROOM_MAX_SIZE_DEFAULT = 62;
 	private static final int CONNECTOR_MIN_SIZE_DEFAULT = 4;
 	private static final int CONNECTOR_MAX_SIZE_DEFAULT = 7;
 	private static final int ALLOWED_MISMATCHES_WITHIN_ROOM = 3;
-	public static final MapColor TRANSPARENT = MapColor.airColor;
-	public static final MapColor RED_X = MapColor.tntColor;
-	public static final MapColor WATCHER_ROOM = MapColor.tntColor;
-	public static final MapColor GREEN_CHECK = MapColor.foliageColor;
-	public static final MapColor START_ROOM = MapColor.foliageColor;
-	public static final MapColor WHITE_CHECK = MapColor.snowColor;
-	public static final MapColor TRAP_ROOM = MapColor.adobeColor;
-	public static final MapColor PUZZLE_ROOM = MapColor.magentaColor;
-	public static final MapColor MINI_BOSS_ROOM = MapColor.yellowColor;
-	public static final MapColor FAIRY_ROOM = MapColor.pinkColor;
-	public static final MapColor UNKNOWN_ROOM = MapColor.grayColor;
-	public static final MapColor REGULAR_ROOM = MapColor.brownColor;
-	public static final MapColor QUESTION_MARK = MapColor.blackColor;
-
-	private static final HashMap<Integer, MapColor> COLOR_INDEX_MAP = new HashMap<Integer, MapColor>() {{
-		put(0, TRANSPARENT);
-		put(4, WATCHER_ROOM); // RED_X
-		put(7, START_ROOM); // GREEN_CHECK
-		put(8, WHITE_CHECK);
-		put(15, TRAP_ROOM);
-		put(16, PUZZLE_ROOM);
-		put(18, MINI_BOSS_ROOM);
-		put(20, FAIRY_ROOM);
-		put(21, UNKNOWN_ROOM);
-		put(26, REGULAR_ROOM);
-		put(29, QUESTION_MARK);
-	}};
-	private static final HashMap<Integer, MapColor> ARGB_MAP = new HashMap<Integer, MapColor>() {{
+	
+	private static final HashMap<Integer, DungeonMapColor> COLOR_INDEX_MAP = 
+		new HashMap<Integer, DungeonMapColor>() {{
+			put(0, TRANSPARENT);
+			put(4, WATCHER_ROOM); // RED_X
+			put(7, START_ROOM); // GREEN_CHECK
+			put(8, WHITE_CHECK);
+			put(15, TRAP_ROOM);
+			put(16, PUZZLE_ROOM);
+			put(18, MINI_BOSS_ROOM);
+			put(20, FAIRY_ROOM);
+			put(21, UNKNOWN_ROOM);
+			put(26, REGULAR_ROOM);
+			put(29, QUESTION_MARK);
+		}};
+	
+	private static final HashMap<Integer, DungeonMapColor> ARGB_MAP = new HashMap<Integer, DungeonMapColor>() {{
 		put(0x10000000, TRANSPARENT);
 		put(0x18000000, TRANSPARENT);
 		put(0xffe5e533, MINI_BOSS_ROOM);
@@ -75,31 +96,39 @@ public class ColorMap {
 		// TODO: Add trap room and anything else missing
 	}};
 	private static final HashMap<Integer, String> COLOR_INDEX_DEBUG_MAP = new HashMap<Integer, String>() {{
-		put(TRANSPARENT.colorIndex, "_");
-		put(MINI_BOSS_ROOM.colorIndex, "B");
-		put(REGULAR_ROOM.colorIndex, "R");
-		put(PUZZLE_ROOM.colorIndex, "P");
-		put(START_ROOM.colorIndex, "S");
-		put(WHITE_CHECK.colorIndex, " ");
-		put(FAIRY_ROOM.colorIndex, "F");
-		put(WATCHER_ROOM.colorIndex, "W");
-		put(TRAP_ROOM.colorIndex, "T");
-		put(QUESTION_MARK.colorIndex, "?");
+		put(TRANSPARENT.colorIndex(), "_");
+		put(MINI_BOSS_ROOM.colorIndex(), "B");
+		put(REGULAR_ROOM.colorIndex(), "R");
+		put(PUZZLE_ROOM.colorIndex(), "P");
+		put(START_ROOM.colorIndex(), "S");
+		put(WHITE_CHECK.colorIndex(), " ");
+		put(FAIRY_ROOM.colorIndex(), "F");
+		put(WATCHER_ROOM.colorIndex(), "W");
+		put(TRAP_ROOM.colorIndex(), "T");
+		put(QUESTION_MARK.colorIndex(), "?");
 	}};
 
+	// public final
 	public final Color[] colorIndexToColorMap = createColorIndexToColorMap();
-	public Writer debugRoomParsingWriter = null;
 
-	private byte[] currentColorBytes = null;
-	private Color[][] currentColorMap = null;
-	private BufferedImage bufferedimage = null;
-	private boolean hasData = false;
-	private final ArrayList<ColoredArea> rooms = new ArrayList<>();
+	// private final
 	private final ArrayList<ColoredArea> connectors = new ArrayList<>();
+	private final ArrayList<ColoredArea> rooms = new ArrayList<>();
+	private final Map<String, Vec4b> decorations = new HashMap<>();
 	private final int minRoomSize;
 	private final int maxRoomSize;
 	private final int minConnectorSize;
 	private final int maxConnectorSize;
+
+	// public non-final
+	public Writer debugRoomParsingWriter = null;
+
+	// private non-final
+	private byte[] currentColorBytes = null;
+	private Color[][] currentColorMap = null;
+	private BufferedImage bufferedimage = null;
+	private boolean hasData = false;
+	private long lastUpdatedMillis = 0;
 
 	public ColorMap() {
 		this(ROOM_MIN_SIZE_DEFAULT, ROOM_MAX_SIZE_DEFAULT, CONNECTOR_MIN_SIZE_DEFAULT, CONNECTOR_MAX_SIZE_DEFAULT);
@@ -112,6 +141,18 @@ public class ColorMap {
 		this.maxConnectorSize = maxConnectorSize;
 	}
 
+	public Map<String, Vec4b> getDecorations() {
+		return this.decorations;
+	}
+
+	public Vec4b putDecoration(String name, Vec4b vec4b) {
+		return decorations.put(name, vec4b);
+	}
+
+	public Vec4b removeDecoration(String name) {
+		return decorations.remove(name);
+	}
+
 	private static Color[] createColorIndexToColorMap() {
 		Color[] mappingTable = new Color[MapColor.mapColorArray.length];
 		for (int i = 0; i < MapColor.mapColorArray.length; i++) {
@@ -121,8 +162,8 @@ public class ColorMap {
 	}
 
 	public static int getColorIndexFromARGB(int color) {
-		 MapColor mapColor = ARGB_MAP.get(color);
-		 if (mapColor != null) return mapColor.colorIndex;
+		 DungeonMapColor mapColor = ARGB_MAP.get(color);
+		 if (mapColor != null) return mapColor.colorIndex();
 		 throw new IllegalArgumentException(String.format("Invalid color value: %d", color));
 	}
 
@@ -226,8 +267,10 @@ public class ColorMap {
 			ColoredAreaType.UNKNOWN,
 			startX, startY,
 			expectedColorIndex,
-			0, 0);
+			0, 0,
+			ColoredAreaStatus.NONE);
 
+		// TODO: detect the area status
 		for (int yIndex = startY; yIndex < MAP_SIZE; yIndex++) {
 			int maxX;
 			if (theArea.width == 0) {
@@ -246,9 +289,9 @@ public class ColorMap {
 					ignoredCount = 0;
 					continue;
 				} else if (ignoredCount < ALLOWED_MISMATCHES_WITHIN_ROOM &&
-					(actualColorIndex == WHITE_CHECK.colorIndex  ||
-						actualColorIndex == GREEN_CHECK.colorIndex ||
-						actualColorIndex == RED_X.colorIndex)) {
+					(actualColorIndex == WHITE_CHECK.colorIndex()  ||
+						actualColorIndex == GREEN_CHECK.colorIndex() ||
+						actualColorIndex == RED_X.colorIndex())) {
 					ignoredCount++;
 					currentRowWidth++;
 					xIndex++;
@@ -290,8 +333,8 @@ public class ColorMap {
 		// 	and doesn't check for going off the map.
 		boolean trimmedWidth = false;
 		for (int x = theArea.x; x < MAP_SIZE; x++) {
-			if (getColorIndexByCoords(x, theArea.y - 1) != TRANSPARENT.colorIndex ||
-					getColorIndexByCoords(x, theArea.y + theArea.height) != TRANSPARENT.colorIndex) {
+			if (getColorIndexByCoords(x, theArea.y - 1) != TRANSPARENT.colorIndex() ||
+					getColorIndexByCoords(x, theArea.y + theArea.height) != TRANSPARENT.colorIndex()) {
 				if (x != theArea.x && x != theArea.x + theArea.width) {
 					theArea.width = x - theArea.x;
 					trimmedWidth = true;
@@ -302,8 +345,8 @@ public class ColorMap {
 
 		// Trim height
 		for (int y = theArea.y; y < MAP_SIZE; y++) {
-			if (getColorIndexByCoords(theArea.x - 1, y) != TRANSPARENT.colorIndex ||
-					getColorIndexByCoords(theArea.x + theArea.width, y) != TRANSPARENT.colorIndex) {
+			if (getColorIndexByCoords(theArea.x - 1, y) != TRANSPARENT.colorIndex() ||
+					getColorIndexByCoords(theArea.x + theArea.width, y) != TRANSPARENT.colorIndex()) {
 				if (y != theArea.y && y != theArea.y + theArea.height) {
 					theArea.height = y - theArea.y;
 					if (trimmedWidth) {
@@ -342,6 +385,10 @@ public class ColorMap {
 	public ColoredArea getAnyAreaByCoords(int x, int y) {
 		ColoredArea theArea = getRoomByCoords(x, y);
 		return theArea != null ? theArea : getConnectorByCoords(x,y);
+	}
+
+	public long getLastUpdatedMillis() {
+		return lastUpdatedMillis;
 	}
 
 	public ArrayList<ColoredArea> getRooms() {
@@ -385,7 +432,7 @@ public class ColorMap {
 		for (int y = 0; y < ColorMap.MAP_SIZE; y++) {
 			for (int x = 0; x < ColorMap.MAP_SIZE; x++) {
 				int colorIndex = getColorIndexByCoords(x, y);
-				if (colorIndex != TRANSPARENT.colorIndex) {
+				if (colorIndex != TRANSPARENT.colorIndex()) {
 					ColoredArea intersectingArea = getAnyAreaByCoords(x, y);
 					if (intersectingArea != null) {
 						x += intersectingArea.width - 1;
@@ -457,6 +504,7 @@ public class ColorMap {
 
 		rediscoverRooms();
 		hasData = true;
+		lastUpdatedMillis = System.currentTimeMillis();
 		return true;
 	}
 
@@ -487,6 +535,27 @@ public class ColorMap {
 		return this.hasData;
 	}
 
+	// TODO: review this logic
+	public boolean isValidDungeonMap() {
+		int alphaPixels = 0;
+		for (int x = 0; x < ColorMap.MAP_SIZE; x++) {
+			for (int y = 0; y < ColorMap.MAP_SIZE; y++) {
+				if (getAlphaAsInt(x, y) < 50) {
+					alphaPixels++;
+				}
+			}
+		}
+		// if less than 10 percent of pixels were alpha then it's not the dungeon map
+		if (alphaPixels < ColorMap.MAP_SIZE * ColorMap.MAP_SIZE / 10) {
+			return false;
+		}
+
+		// TODO: check if all the connectors are the same size
+		// TODO: check for at least one connector
+
+		return hasRoomWithColor(START_ROOM.colorIndex());
+	}
+
 	public static String getColorIndexDebugString(int color) {
 		String debugString = COLOR_INDEX_DEBUG_MAP.get(color);
 		if (debugString != null) return debugString;
@@ -505,22 +574,34 @@ public class ColorMap {
 		UNKNOWN
 	}
 
+	public enum ColoredAreaStatus {
+		NONE,
+		FAILED,
+		PARTIALLY_COMPLETE,
+		FULLY_COMPLETED,
+		QUESTION
+	}
 	public static class ColoredArea {
 		public ColoredAreaType type;
+		public ColoredAreaStatus status;
 		public int x;
 		public int y;
 		public int colorIndex;
 		public int height;
 		public int width;
 
-
-		ColoredArea(ColoredAreaType type, int x, int y, int colorIndex, int height, int width) {
+		ColoredArea(ColoredAreaType type,
+								int x, int y,
+								int colorIndex,
+								int height, int width,
+								ColoredAreaStatus status) {
 			this.type = type;
 			this.x = x;
 			this.y = y;
 			this.colorIndex = colorIndex;
 			this.height = height;
 			this.width = width;
+			this.status = status;
 		}
 
 		public String toString() {

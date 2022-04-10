@@ -1,7 +1,6 @@
 package io.github.moulberry.notenoughupdates.dungeons;
 
 import com.google.common.collect.Iterables;
-import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
 import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.core.config.Position;
@@ -49,66 +48,18 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.*;
+
+import static io.github.moulberry.notenoughupdates.dungeons.DungeonMapConstants.*;
+import static io.github.moulberry.notenoughupdates.dungeons.DungeonMapConstants.ResourceLocs.*;
+import static io.github.moulberry.notenoughupdates.dungeons.DungeonMapData.*;
+import static io.github.moulberry.notenoughupdates.dungeons.DungeonMapData.NeuConfigData.*;
 
 public class DungeonMap {
 	private static DungeonMap instance = null;
 	private static final Minecraft mc = Minecraft.getMinecraft();
 	private static final DungeonMapConfig config = NotEnoughUpdates.INSTANCE.config.dungeonMap;
-	private static final ResourceLocation GREEN_CHECK = new ResourceLocation(
-		"notenoughupdates:dungeon_map/green_check.png");
-	private static final ResourceLocation WHITE_CHECK = new ResourceLocation(
-		"notenoughupdates:dungeon_map/white_check.png");
-	private static final ResourceLocation QUESTION = new ResourceLocation(
-		"notenoughupdates:dungeon_map/question.png");
-	private static final ResourceLocation CROSS = new ResourceLocation(
-		"notenoughupdates:dungeon_map/cross.png");
-
-	private static final ResourceLocation ROOM_RED = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/red_room.png");
-	private static final ResourceLocation ROOM_BROWN = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/brown_room.png");
-	private static final ResourceLocation ROOM_GRAY = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/gray_room.png");
-	private static final ResourceLocation ROOM_GREEN = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/green_room.png");
-	private static final ResourceLocation ROOM_PINK = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/pink_room.png");
-	private static final ResourceLocation ROOM_PURPLE = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/purple_room.png");
-	private static final ResourceLocation ROOM_YELLOW = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/yellow_room.png");
-	private static final ResourceLocation ROOM_ORANGE = new ResourceLocation(
-		"notenoughupdates:dungeon_map/rooms_default/orange_room.png");
-
-	private static final ResourceLocation CORRIDOR_RED = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/red_corridor.png");
-	private static final ResourceLocation CORRIDOR_BROWN = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/brown_corridor.png");
-	private static final ResourceLocation CORRIDOR_GRAY = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/gray_corridor.png");
-	private static final ResourceLocation CORRIDOR_GREEN = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/green_corridor.png");
-	private static final ResourceLocation CORRIDOR_PINK = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/pink_corridor.png");
-	private static final ResourceLocation CORRIDOR_PURPLE = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/purple_corridor.png");
-	private static final ResourceLocation CORRIDOR_YELLOW = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/yellow_corridor.png");
-	private static final ResourceLocation CORRIDOR_ORANGE = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corridors_default/orange_corridor.png");
-
-	private static final ResourceLocation DIVIDER_BROWN = new ResourceLocation(
-		"notenoughupdates:dungeon_map/dividers_default/brown_divider.png");
-
-	private static final ResourceLocation CORNER_BROWN = new ResourceLocation(
-		"notenoughupdates:dungeon_map/corners_default/brown_corner.png");
-
-	private static final int NETHER_STAR_ITEM_ID = 399;
 
 	private final ColorMap currentColorMap = new ColorMap(10, 20, 4, 5);
 	private final HashMap<RoomOffset, Room> roomMap = new HashMap<>();
@@ -116,7 +67,6 @@ public class DungeonMap {
 	private int connectorSize = 5;
 	private int roomSize = 0;
 
-	private Map<String, Vec4b> mapDecorations;
 	private long lastDecorationsMillis = -1;
 	private long lastLastDecorationsMillis = -1;
 
@@ -133,14 +83,6 @@ public class DungeonMap {
 			instance = new DungeonMap();
 		}
 		return instance;
-	}
-
-	public static void saveMap() {
-		DungeonMap.getInstance().currentColorMap.saveMapToPngFile("DungeonMap.png");
-	}
-
-	public void setMapDecorations(Map<String, Vec4b> mapDecorations) {
-		this.mapDecorations = mapDecorations;
 	}
 
 	private static class RoomOffset {
@@ -214,177 +156,6 @@ public class DungeonMap {
 		}
 	}
 
-	private class Room {
-		Color colour = new Color(0, 0, 0, 0);
-		int tickColour = 0;
-		boolean fillCorner = false;
-
-		RoomConnection left = new RoomConnection(RoomConnectionType.NONE, new Color(0, true));
-		RoomConnection up = new RoomConnection(RoomConnectionType.NONE, new Color(0, true));
-		RoomConnection right = new RoomConnection(RoomConnectionType.NONE, new Color(0, true));
-		RoomConnection down = new RoomConnection(RoomConnectionType.NONE, new Color(0, true));
-
-		public void renderNoRotate(int roomSize, int connectorSize, int rotation) {
-			if (tickColour != 0) {
-				Color tick = new Color(tickColour, true);
-				ResourceLocation indicatorTex = null;
-				if (tick.getRed() == 255 && tick.getGreen() == 255 && tick.getBlue() == 255) {
-					indicatorTex = WHITE_CHECK;
-				} else if (tick.getRed() == 0 && tick.getGreen() == 124 && tick.getBlue() == 0) {
-					indicatorTex = GREEN_CHECK;
-				} else if (tick.getRed() == 13 && tick.getGreen() == 13 && tick.getBlue() == 13) {
-					indicatorTex = QUESTION;
-				} else if (tick.getRed() == 255 && tick.getGreen() == 0 && tick.getBlue() == 0) {
-					indicatorTex = CROSS;
-				}
-				if (indicatorTex != null) {
-					mc.getTextureManager().bindTexture(indicatorTex);
-					float x = 0;
-					float y = 0;
-
-					if (config.dmCenterCheck) {
-						if (fillCorner) {
-							x += -(roomSize + connectorSize) / 2f * Math.cos(Math.toRadians(rotation - 45)) * 1.414f;
-							y += (roomSize + connectorSize) / 2f * Math.sin(Math.toRadians(rotation - 45)) * 1.414;
-						}
-						if (down.type == RoomConnectionType.ROOM_DIVIDER && right.type != RoomConnectionType.ROOM_DIVIDER) {
-							x += -(roomSize + connectorSize) / 2f * Math.sin(Math.toRadians(rotation));
-							y += -(roomSize + connectorSize) / 2f * Math.cos(Math.toRadians(rotation));
-						} else if (down.type != RoomConnectionType.ROOM_DIVIDER && right.type == RoomConnectionType.ROOM_DIVIDER) {
-							x += -(roomSize + connectorSize) / 2f * Math.cos(Math.toRadians(rotation));
-							y += (roomSize + connectorSize) / 2f * Math.sin(Math.toRadians(rotation));
-						}
-					}
-					GlStateManager.translate(x, y, 0);
-					if (!config.dmOrientCheck) {
-						GlStateManager.rotate(-rotation + 180, 0, 0, 1);
-					}
-
-					GlStateManager.pushMatrix();
-					GlStateManager.scale(config.dmIconScale,
-						config.dmIconScale, 1
-					);
-					Utils.drawTexturedRect(-5, -5, 10, 10, GL11.GL_NEAREST);
-					GlStateManager.popMatrix();
-
-					if (!config.dmOrientCheck) {
-						GlStateManager.rotate(rotation - 180, 0, 0, 1);
-					}
-					GlStateManager.translate(-x, -y, 0);
-				}
-			}
-		}
-
-		public void render(int roomSize, int connectorSize) {
-			ResourceLocation roomTex = null;
-			if (colour.getRed() == 114 && colour.getGreen() == 67 && colour.getBlue() == 27) {
-				roomTex = ROOM_BROWN;
-			} else if (colour.getRed() == 65 && colour.getGreen() == 65 && colour.getBlue() == 65) {
-				roomTex = ROOM_GRAY;
-			} else if (colour.getRed() == 0 && colour.getGreen() == 124 && colour.getBlue() == 0) {
-				roomTex = ROOM_GREEN;
-			} else if (colour.getRed() == 242 && colour.getGreen() == 127 && colour.getBlue() == 165) {
-				roomTex = ROOM_PINK;
-			} else if (colour.getRed() == 178 && colour.getGreen() == 76 && colour.getBlue() == 216) {
-				roomTex = ROOM_PURPLE;
-			} else if (colour.getRed() == 255 && colour.getGreen() == 0 && colour.getBlue() == 0) {
-				roomTex = ROOM_RED;
-			} else if (colour.getRed() == 229 && colour.getGreen() == 229 && colour.getBlue() == 51) {
-				roomTex = ROOM_YELLOW;
-			} else if (colour.getRed() == 216 && colour.getGreen() == 127 && colour.getBlue() == 51) {
-				roomTex = ROOM_ORANGE;
-			}
-
-			if (roomTex != null) {
-				mc.getTextureManager().bindTexture(roomTex);
-				GlStateManager.color(1, 1, 1, 1);
-				Utils.drawTexturedRect(0, 0, roomSize, roomSize, GL11.GL_LINEAR);
-			} else {
-				Gui.drawRect(0, 0, roomSize, roomSize, colour.getRGB());
-			}
-
-			if (fillCorner) {
-				GlStateManager.color(1, 1, 1, 1);
-				mc.getTextureManager().bindTexture(CORNER_BROWN);
-				Utils.drawTexturedRect(roomSize, roomSize, connectorSize, connectorSize, GL11.GL_NEAREST);
-			}
-
-			for (int k = 0; k < 2; k++) {
-				RoomConnection connection = down;
-				if (k == 1) connection = right;
-
-				if (connection.type == RoomConnectionType.NONE || connection.type == RoomConnectionType.WALL) continue;
-
-				ResourceLocation corridorTex = null;
-				if (connection.colour.getRed() == 114 && connection.colour.getGreen() == 67 &&
-					connection.colour.getBlue() == 27) {
-					corridorTex = connection.type == RoomConnectionType.CORRIDOR ? CORRIDOR_BROWN : DIVIDER_BROWN;
-				} else if (connection.colour.getRed() == 65 && connection.colour.getGreen() == 65 &&
-					connection.colour.getBlue() == 65) {
-					corridorTex = CORRIDOR_GRAY;
-				} else if (connection.colour.getRed() == 0 && connection.colour.getGreen() == 124 &&
-					connection.colour.getBlue() == 0) {
-					corridorTex = CORRIDOR_GREEN;
-				} else if (connection.colour.getRed() == 242 && connection.colour.getGreen() == 127 &&
-					connection.colour.getBlue() == 165) {
-					corridorTex = CORRIDOR_PINK;
-				} else if (connection.colour.getRed() == 178 && connection.colour.getGreen() == 76 &&
-					connection.colour.getBlue() == 216) {
-					corridorTex = CORRIDOR_PURPLE;
-				} else if (connection.colour.getRed() == 255 && connection.colour.getGreen() == 0 &&
-					connection.colour.getBlue() == 0) {
-					corridorTex = CORRIDOR_RED;
-				} else if (connection.colour.getRed() == 229 && connection.colour.getGreen() == 229 &&
-					connection.colour.getBlue() == 51) {
-					corridorTex = CORRIDOR_YELLOW;
-				} else if (connection.colour.getRed() == 216 && connection.colour.getGreen() == 127 &&
-					connection.colour.getBlue() == 51) {
-					corridorTex = CORRIDOR_ORANGE;
-				}
-
-				if (corridorTex == null) {
-					int xOffset = 0;
-					int yOffset = 0;
-					int width = 0;
-					int height = 0;
-
-					if (connection == right) {
-						xOffset = roomSize;
-						width = connectorSize;
-						height = roomSize;
-
-						if (connection.type == RoomConnectionType.CORRIDOR) {
-							height = 8;
-							yOffset += 4;
-						}
-					} else if (connection == down) {
-						yOffset = roomSize;
-						width = roomSize;
-						height = connectorSize;
-
-						if (connection.type == RoomConnectionType.CORRIDOR) {
-							width = 8;
-							xOffset += 4;
-						}
-					}
-
-					Gui.drawRect(xOffset, yOffset, xOffset + width, yOffset + height, connection.colour.getRGB());
-				} else {
-					GlStateManager.color(1, 1, 1, 1);
-					mc.getTextureManager().bindTexture(corridorTex);
-					GlStateManager.pushMatrix();
-					if (connection == right) {
-						GlStateManager.translate(roomSize / 2f, roomSize / 2f, 0);
-						GlStateManager.rotate(-90, 0, 0, 1);
-						GlStateManager.translate(-roomSize / 2f, -roomSize / 2f, 0);
-					}
-					Utils.drawTexturedRect(0, roomSize, roomSize, connectorSize, GL11.GL_NEAREST);
-					GlStateManager.popMatrix();
-				}
-			}
-		}
-	}
-
 	private static final ResourceLocation mapIcons = new ResourceLocation("textures/map/map_icons.png");
 
 	public static Framebuffer mapFramebuffer1 = null;
@@ -413,49 +184,6 @@ public class DungeonMap {
 		shader.getShaderManager().getShaderUniformOrDefault("radiusSq").set(radiusSq);
 	}
 
-	public int getRenderRoomSize() {
-		double roomSizeOption = config.dmRoomSize;
-		if (roomSizeOption <= 0) return 12;
-		return 12 + (int) Math.round(roomSizeOption * 4);
-	}
-
-	public int getRenderConnSize() {
-		int roomSizeOption = Math.round(config.dmRoomSize);
-		if (roomSizeOption <= 0) return 3;
-		return 3 + roomSizeOption;
-	}
-
-	private final HashMap<Integer, Float> borderRadiusCache = new HashMap<>();
-
-	public float getBorderRadius() {
-		int borderSizeOption = Math.round(config.dmBorderSize);
-		String sizeId = borderSizeOption == 0 ? "small" : borderSizeOption == 2 ? "large" : "medium";
-
-		int style = config.dmBorderStyle;
-		if (borderRadiusCache.containsKey(style)) {
-			return borderRadiusCache.get(style);
-		}
-
-		try (
-			BufferedReader reader = new BufferedReader(new InputStreamReader(Minecraft
-				.getMinecraft()
-				.getResourceManager()
-				.getResource(
-					new ResourceLocation("notenoughupdates:dungeon_map/borders/" + sizeId + "/" + style + ".json"))
-				.getInputStream(), StandardCharsets.UTF_8))
-		) {
-			JsonObject json = NotEnoughUpdates.INSTANCE.manager.gson.fromJson(reader, JsonObject.class);
-			float radiusSq = json.get("radiusSq").getAsFloat();
-
-			borderRadiusCache.put(style, radiusSq);
-			return radiusSq;
-		} catch (Exception ignored) {
-		}
-
-		borderRadiusCache.put(style, 1f);
-		return 1f;
-	}
-
 	public void render(int centerX, int centerY) {
 		boolean useFb = config.dmCompat <= 1 && OpenGlHelper.isFramebufferEnabled();
 		boolean useShd = config.dmCompat <= 0 && OpenGlHelper.areShadersSupported();
@@ -475,10 +203,11 @@ public class DungeonMap {
 
 		int borderSizeOption = Math.round(config.dmBorderSize);
 
-		int renderRoomSize = getRenderRoomSize();
-		int renderConnSize = getRenderConnSize();
+		int renderRoomSize =  getRenderRoomSize();
+		int renderConnSize = NeuConfigData.getRenderConnSize();
 
 		MapPosition playerPos = null;
+
 		if (playerEntityMapPositions.containsKey(mc.thePlayer.getName())) {
 			playerPos = playerEntityMapPositions.get(mc.thePlayer.getName());
 		} else if (playerMarkerMapPositions.containsKey(mc.thePlayer.getName())) {
@@ -827,7 +556,7 @@ public class DungeonMap {
 					GlStateManager.pushMatrix();
 					{
 						try {
-							upload(mapShader, mapSizeX, mapSizeY, scaleFactor, getBorderRadius());
+							upload(mapShader, mapSizeX, mapSizeY, scaleFactor, NeuConfigData.getBorderRadius());
 							mapShader.setProjectionMatrix(projectionMatrix);
 							mapShader.loadShader(0);
 							renderFromBuffer = mapFramebuffer2;
@@ -1132,8 +861,8 @@ public class DungeonMap {
 	private long lastClearCache = 0;
 
 	public void renderMap(
-		int centerX, int centerY, ColorMap colorMap, int roomSizeBlocks,
-		Set<String> playerNames, boolean usePlayerPositions, float partialTicks
+		int centerX, int centerY, ColorMap colorMap, Set<String> playerNames,
+		boolean usePlayerPositions, float partialTicks
 	) {
 		if (!config.dmEnable) return;
 		if (colorMap == null) return;
@@ -1145,7 +874,6 @@ public class DungeonMap {
 			searchForPlayers = true;
 			connectorSize = -1;
 			roomSize = -1;
-			borderRadiusCache.clear();
 			failMap = false;
 
 			lastClearCache = System.currentTimeMillis();
@@ -1190,7 +918,7 @@ public class DungeonMap {
 
 		if (startRoom == null || roomSize <= 0) {
 			// TODO: fix this
-			if (!colorMap.hasRoomWithColor(ColorMap.START_ROOM.colorIndex << 2)) {
+			if (!colorMap.hasRoomWithColor(ColorMap.DungeonMapColor.START_ROOM.colorIndex() << 2)) {
 				failMap = true;
 				return;
 			}
@@ -1315,6 +1043,7 @@ public class DungeonMap {
 			return;
 		}
 
+		Map<String, Vec4b> mapDecorations = DungeonMapData.getInstance().getMapDecorations();
 		if (mapDecorations != null && mapDecorations.size() > 0) {
 			List<MapPosition> positions = new ArrayList<>();
 			int decorations = 0;
@@ -1516,11 +1245,9 @@ public class DungeonMap {
 			return;
 		}
 
-		Color[][] colourMap;
-
 		if (holdingBow) {
 			// Set color map to all black if we have no data before the bow is equipped
-			// TODO: try this out by holding a bow
+			// TODO: try this out by holding a bow to make sure it's black
 			if (!currentColorMap.hasData()) {
 				currentColorMap.setColorData(new byte[128*128]); // defaults to 0
 			}
@@ -1528,11 +1255,11 @@ public class DungeonMap {
 			ItemMap map = (ItemMap) mapSlotStack.getItem();
 			MapData mapData = map.getMapData(mapSlotStack, mc.theWorld);
 			if (mapData == null) return;
-			mapDecorations = mapData.mapDecorations;
 			currentColorMap.setColorData(mapData.colors);
 		}
 
-		int roomSizeBlocks = 31;
+		// TODO: Figure out what this value is supposed to represent - it was 0 when called for the demo map
+//		int roomSizeBlocks = 31;
 		Set<String> playerNames = new HashSet<>();
 		int players = 0;
 		for (ScorePlayerTeam team : mc.thePlayer.getWorldScoreboard().getTeams()) {
@@ -1551,7 +1278,6 @@ public class DungeonMap {
 			mapPosFromConfig.getAbsX(scaledResolution, borderSize / 2) + borderSize / 2,
 			mapPosFromConfig.getAbsY(scaledResolution, borderSize / 2) + borderSize / 2,
 			currentColorMap,
-			roomSizeBlocks,
 			playerNames,
 			true,
 			event.partialTicks
@@ -1590,49 +1316,4 @@ public class DungeonMap {
 	Framebuffer blurOutputHorz = null;
 	Shader blurShaderVert = null;
 	Framebuffer blurOutputVert = null;
-
-	/**
-	 * Creates a projection matrix that projects from our coordinate space [0->width; 0->height] to OpenGL coordinate
-	 * space [-1 -> 1; 1 -> -1] (Note: flipped y-axis).
-	 * <p>
-	 * This is so that we can render to and from the framebuffer in a way that is familiar to us, instead of needing to
-	 * apply scales and translations manually.
-	 */
-	private Matrix4f createProjectionMatrix(int width, int height) {
-		Matrix4f projMatrix = new Matrix4f();
-		projMatrix.setIdentity();
-		projMatrix.m00 = 2.0F / (float) width;
-		projMatrix.m11 = 2.0F / (float) (-height);
-		projMatrix.m22 = -0.0020001999F;
-		projMatrix.m33 = 1.0F;
-		projMatrix.m03 = -1.0F;
-		projMatrix.m13 = 1.0F;
-		projMatrix.m23 = -1.0001999F;
-		return projMatrix;
-	}
-
-	public void showPlayerCoordinateData() {
-		EntityPlayerSP player = mc.thePlayer;
-
-		StringBuilder sb = new StringBuilder();
-		sb.append(EnumChatFormatting.YELLOW + "Player X Z Coordinates : ");
-		sb.append(EnumChatFormatting.WHITE + String.format("%f %f\n", player.posX, player.posZ));
-
-		sb.append(EnumChatFormatting.YELLOW + "Player Map Decoration: ");
-		if (mapDecorations != null) {
-			Collection<Vec4b> decorations = mapDecorations.values();
-			for (Vec4b vec4b : decorations) {
-				byte id = vec4b.func_176110_a();
-				if (id != 1) continue;
-
-				sb.append(EnumChatFormatting.WHITE + String.format("%d %d\n", vec4b.func_176112_b(), vec4b.func_176113_c()));
-				break;
-			}
-		} else {
-			sb.append(EnumChatFormatting.WHITE + "<NONE>");
-		}
-
-		mc.thePlayer.addChatMessage(new ChatComponentText(sb.toString()));
-		MiscUtils.copyToClipboard(StringUtils.cleanColour(sb.toString()));
-	}
 }

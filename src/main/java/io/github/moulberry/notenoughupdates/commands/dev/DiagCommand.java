@@ -2,10 +2,14 @@ package io.github.moulberry.notenoughupdates.commands.dev;
 
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
 import io.github.moulberry.notenoughupdates.commands.ClientCommandBase;
+import io.github.moulberry.notenoughupdates.core.util.MiscUtils;
+import io.github.moulberry.notenoughupdates.core.util.StringUtils;
 import io.github.moulberry.notenoughupdates.dungeons.DungeonMap;
+import io.github.moulberry.notenoughupdates.dungeons.DungeonMapData;
 import io.github.moulberry.notenoughupdates.miscfeatures.CrystalMetalDetectorSolver;
 import io.github.moulberry.notenoughupdates.miscfeatures.CrystalWishingCompassSolver;
 import io.github.moulberry.notenoughupdates.options.customtypes.NEUDebugFlag;
+import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
@@ -71,10 +75,13 @@ public class DiagCommand extends ClientCommandBase {
 				if (args.length != 2) return;
 				switch (args[1].toLowerCase()) {
 					case "savemap":
-						DungeonMap.saveMap();
+						DungeonMapData.getInstance().saveMap();
 						break;
 					case "playerpos":
-						DungeonMap.getInstance().showPlayerCoordinateData();
+						String coordData = DungeonMapData.getInstance().getCoordinateData();
+						Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(coordData));
+						MiscUtils.copyToClipboard(StringUtils.cleanColour(coordData));
+
 						break;
 					default:
 						sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Invalid command"));
