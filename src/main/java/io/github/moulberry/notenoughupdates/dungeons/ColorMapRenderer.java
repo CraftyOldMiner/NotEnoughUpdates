@@ -52,7 +52,7 @@ public class ColorMapRenderer {
 		dungeonMapData.refreshDataIfNeeded();
 
 		float borderSize = DungeonMapData.NeuConfigData.getBorderSizeValue();
-		String borderColor = DungeonMapData.NeuConfigData.getBorderColor()
+		String borderColor = DungeonMapData.NeuConfigData.getBorderColor();
 		float backgroundBlur = DungeonMapData.NeuConfigData.getBackgroundBlur();
 		boolean useFb = DungeonMapData.NeuConfigData.getRenderCompat() <= 1 && OpenGlHelper.isFramebufferEnabled();
 		boolean useShd = DungeonMapData.NeuConfigData.getRenderCompat() <= 0 && OpenGlHelper.areShadersSupported();

@@ -60,6 +60,7 @@ mixin {
 repositories {
     mavenCentral()
     maven("https://repo.spongepowered.org/maven/")
+    maven("https://oss.sonatype.org/content/repositories/releases/" )
 }
 
 dependencies {
@@ -68,6 +69,10 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core:2.13.1")
     implementation("info.bliki.wiki:bliki-core:3.1.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
+    testRuntimeOnly("org.lwjgl.lwjgl:lwjgl:2.9.3")
+    testRuntimeOnly("org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-windows")
+    testRuntimeOnly("org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-linux")
+    testRuntimeOnly("org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-osx")
 }
 
 
