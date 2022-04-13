@@ -2,6 +2,7 @@ package io.github.moulberry.notenoughupdates.dungeons;
 
 import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
+import io.github.moulberry.notenoughupdates.core.config.Position;
 import io.github.moulberry.notenoughupdates.options.seperateSections.DungeonMapConfig;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.client.Minecraft;
@@ -146,6 +147,9 @@ public class DungeonMapData {
 		private static final HashMap<Integer, Float> borderRadiusCache = new HashMap<>();
 		private static long lastUpdateMillis = 0;
 
+		public static boolean getEnabled() {
+			return dmConfig.dmEnable;
+		}
 		public static int getRenderCompat() {
 			return dmConfig.dmCompat;
 		}
@@ -247,6 +251,10 @@ public class DungeonMapData {
 
 			borderRadiusCache.put(borderStyle, 1f);
 			return 1f;
+		}
+
+		public static Position getMapPosition() {
+			return dmConfig.dmPosition;
 		}
 
 		public static boolean hasBeenUpdated(long sinceMillis) {

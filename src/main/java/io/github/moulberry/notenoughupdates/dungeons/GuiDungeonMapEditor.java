@@ -434,13 +434,13 @@ public class GuiDungeonMapEditor extends GuiScreen {
 
 		// TODO: Fix this
 		//demoMap.setMapDecorations(decorations);
-		demoMap.renderMap(
-			guiLeft + 357,
-			guiTop + 125,
-			NotEnoughUpdates.INSTANCE.colorMap,
-			new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
-			false,
-			partialTicks);
+//		demoMap.renderMap(
+//			guiLeft + 357,
+//			guiTop + 125,
+//			NotEnoughUpdates.INSTANCE.colorMap,
+//			new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
+//			false,
+//			partialTicks);
 
 		for (Button button : buttons) {
 			button.render();
@@ -587,14 +587,14 @@ public class GuiDungeonMapEditor extends GuiScreen {
 					ScaledResolution scaledResolution = Utils.pushGuiScale(2);
 					// TODO: Fix this
 					//demoMap.setMapDecorations(decorations);
-					demoMap.renderMap(
-						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsX(scaledResolution, size) + size / 2,
-						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsY(scaledResolution, size) + size / 2,
-						NotEnoughUpdates.INSTANCE.colorMap,
-						new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
-						false,
-						0
-					);
+//					demoMap.renderMap(
+//						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsX(scaledResolution, size) + size / 2,
+//						NotEnoughUpdates.INSTANCE.config.dungeonMap.dmPosition.getAbsY(scaledResolution, size) + size / 2,
+//						NotEnoughUpdates.INSTANCE.colorMap,
+//						new HashSet<>(Arrays.asList(mc.thePlayer.getName())),
+//						false,
+//						0
+//					);
 					Utils.pushGuiScale(-1);
 				}, () -> {}, () -> NotEnoughUpdates.INSTANCE.openGui = new GuiDungeonMapEditor()
 				).withScale(2));

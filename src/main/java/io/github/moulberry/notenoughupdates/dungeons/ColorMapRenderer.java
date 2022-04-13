@@ -25,10 +25,16 @@ import java.util.HashMap;
 import java.util.Set;
 
 import static io.github.moulberry.notenoughupdates.dungeons.ColorMap.*;
-import static io.github.moulberry.notenoughupdates.dungeons.DungeonMapConstants.ResourceLocs.*;
+import static io.github.moulberry.notenoughupdates.dungeons.ResourceLocationss.*;
 import static io.github.moulberry.notenoughupdates.dungeons.DungeonMapData.NeuConfigData.*;
 
 public class ColorMapRenderer {
+	private static ColorMapRenderer instance;
+	public static ColorMapRenderer getInstance() {
+		if (instance != null) return instance;
+		instance = new ColorMapRenderer();
+		return instance;
+	}
 	Minecraft mc = Minecraft.getMinecraft();
 	private DungeonMapData dungeonMapData;
 	public static Framebuffer mapFramebuffer1 = null;
@@ -54,8 +60,8 @@ public class ColorMapRenderer {
 		float borderSize = DungeonMapData.NeuConfigData.getBorderSizeValue();
 		String borderColor = DungeonMapData.NeuConfigData.getBorderColor();
 		float backgroundBlur = DungeonMapData.NeuConfigData.getBackgroundBlur();
-		boolean useFb = DungeonMapData.NeuConfigData.getRenderCompat() <= 1 && OpenGlHelper.isFramebufferEnabled();
-		boolean useShd = DungeonMapData.NeuConfigData.getRenderCompat() <= 0 && OpenGlHelper.areShadersSupported();
+		boolean useFrameBuffer = DungeonMapData.NeuConfigData.getRenderCompat() <= 1 && OpenGlHelper.isFramebufferEnabled();
+		boolean useShaders = DungeonMapData.NeuConfigData.getRenderCompat() <= 0 && OpenGlHelper.areShadersSupported();
 
 		boolean searchForPlayers = false;
 
@@ -291,16 +297,16 @@ public class ColorMapRenderer {
 
 		ScaledResolution scaledResolution = Utils.pushGuiScale(2);
 
-		int minRoomX = 999;
-		int minRoomY = 999;
-		int maxRoomX = -999;
-		int maxRoomY = -999;
-		for (DungeonMap.RoomOffset offset : roomMap.keySet()) {
-			minRoomX = Math.min(offset.x, minRoomX);
-			minRoomY = Math.min(offset.y, minRoomY);
-			maxRoomX = Math.max(offset.x, maxRoomX);
-			maxRoomY = Math.max(offset.y, maxRoomY);
-		}
+//		int minRoomX = 999;
+//		int minRoomY = 999;
+//		int maxRoomX = -999;
+//		int maxRoomY = -999;
+//		for (DungeonMap.RoomOffset offset : roomMap.keySet()) {
+//			minRoomX = Math.min(offset.x, minRoomX);
+//			minRoomY = Math.min(offset.y, minRoomY);
+//			maxRoomX = Math.max(offset.x, maxRoomX);
+//			maxRoomY = Math.max(offset.y, maxRoomY);
+//		}
 
 		int borderSizeOption = Math.round(borderSize);
 
@@ -329,15 +335,15 @@ public class ColorMapRenderer {
 		}
 		mapSizeY = mapSizeX;
 
-		int roomsSizeX = (maxRoomX - minRoomX) * (renderRoomSize + renderConnSize) + renderRoomSize;
-		int roomsSizeY = (maxRoomY - minRoomY) * (renderRoomSize + renderConnSize) + renderRoomSize;
+//		int roomsSizeX = (maxRoomX - minRoomX) * (renderRoomSize + renderConnSize) + renderRoomSize;
+//		int roomsSizeY = (maxRoomY - minRoomY) * (renderRoomSize + renderConnSize) + renderRoomSize;
 		int mapCenterX = mapSizeX / 2;
 		int mapCenterY = mapSizeY / 2;
 		int scaleFactor = 8;
 
 		projectionMatrix = Utils.createProjectionMatrix(mapSizeX * scaleFactor, mapSizeY * scaleFactor);
-		mapFramebuffer1 = checkFramebufferSizes(mapFramebuffer1, mapSizeX * scaleFactor, mapSizeY * scaleFactor);
-		mapFramebuffer2 = checkFramebufferSizes(mapFramebuffer2, mapSizeX * scaleFactor, mapSizeY * scaleFactor);
+		mapFramebuffer1 = createOrUpdateFramebufferSizes(mapFramebuffer1, mapSizeX * scaleFactor, mapSizeY * scaleFactor);
+		mapFramebuffer2 = createOrUpdateFramebufferSizes(mapFramebuffer2, mapSizeX * scaleFactor, mapSizeY * scaleFactor);
 		mapFramebuffer1.framebufferColor[1] = 0;
 		mapFramebuffer1.framebufferColor[2] = 0;
 
@@ -364,14 +370,14 @@ public class ColorMapRenderer {
 		mapFramebuffer2.framebufferColor[2] = (backgroundColour & 0xFF) / 255f;
 
 		try {
-			if (useFb) {
+			if (useFrameBuffer) {
 				mapFramebuffer1.framebufferClear();
 				mapFramebuffer2.framebufferClear();
 			}
 
 			GlStateManager.pushMatrix();
 			{
-				if (useFb) {
+				if (useFrameBuffer) {
 					GlStateManager.matrixMode(5889);
 					GlStateManager.loadIdentity();
 					GlStateManager.ortho(0.0D, mapSizeX * scaleFactor, mapSizeY * scaleFactor, 0.0D, 1000.0D, 3000.0D);
@@ -408,7 +414,7 @@ public class ColorMapRenderer {
 
 				GlStateManager.translate(mapCenterX, mapCenterY, 10);
 
-				if (!useFb || backgroundBlur > 0.1 &&	backgroundBlur < 100) {
+				if (!useFrameBuffer || backgroundBlur > 0.1 &&	backgroundBlur < 100) {
 					GlStateManager.enableBlend();
 					GL14.glBlendFuncSeparate(
 						GL11.GL_SRC_ALPHA,
@@ -430,22 +436,22 @@ public class ColorMapRenderer {
 //
 //					GlStateManager.translate(-x, -y, 0);
 //				} else {
-					GlStateManager.translate(-roomsSizeX / 2, -roomsSizeY / 2, 0);
+//					GlStateManager.translate(-roomsSizeX / 2, -roomsSizeY / 2, 0);
 //				}
 
 				for (ColoredArea area : colorMap.getRooms()) {
-					DungeonMap.RoomOffset roomOffset = entry.getKey();
-					int x = (roomOffset.x - minRoomX) * (renderRoomSize + renderConnSize);
-					int y = (roomOffset.y - minRoomY) * (renderRoomSize + renderConnSize);
+//					DungeonMap.RoomOffset roomOffset = entry.getKey();
+//					int x = (roomOffset.x - minRoomX) * (renderRoomSize + renderConnSize);
+//					int y = (roomOffset.y - minRoomY) * (renderRoomSize + renderConnSize);
 					GlStateManager.pushMatrix();
-					GlStateManager.translate(x, y, 0);
-					// TODO: Fix the fillcorner param if needed
-					AreaRenderer.render(area, roomsSizeX, connectorSize, false);
-					GlStateManager.translate(-x, -y, 0);
+//					GlStateManager.translate(x, y, 0);
+//					// TODO: Fix the fillcorner param if needed
+////					AreaRenderer.render(area, roomsSizeX, connectorSize, false);
+//					GlStateManager.translate(-x, -y, 0);
 					GlStateManager.popMatrix();
 				}
 
-				GlStateManager.translate(-mapCenterX + roomsSizeX / 2f, -mapCenterY + roomsSizeY / 2f, 0);
+//				GlStateManager.translate(-mapCenterX + roomsSizeX / 2f, -mapCenterY + roomsSizeY / 2f, 0);
 
 				GlStateManager.translate(mapCenterX, mapCenterY, 0);
 				GlStateManager.rotate(rotation - 180, 0, 0, 1);
@@ -454,20 +460,20 @@ public class ColorMapRenderer {
 				GlStateManager.translate(mapCenterX, mapCenterY, 0);
 
 				for (ColoredArea area : colorMap.getRooms()) {
-					DungeonMap.RoomOffset roomOffset = entry.getKey();
-					float x =
-						(roomOffset.x - minRoomX) * (renderRoomSize + renderConnSize) - roomsSizeX / 2f + renderRoomSize / 2f;
-					float y =
-						(roomOffset.y - minRoomY) * (renderRoomSize + renderConnSize) - roomsSizeY / 2f + renderRoomSize / 2f;
-					float x2 = (float) (-x * Math.cos(Math.toRadians(-rotation)) + y * Math.sin(Math.toRadians(-rotation)));
-					float y2 = (float) (-x * Math.sin(Math.toRadians(-rotation)) - y * Math.cos(Math.toRadians(-rotation)));
-					GlStateManager.pushMatrix();
-					GlStateManager.translate(x2, y2, 0);
-					GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-					// TODO: Fix the fillcorner param if needed
-					AreaRenderer.renderIndicator(area, rotation);
-					GlStateManager.translate(-x2, -y2, 0);
-					GlStateManager.popMatrix();
+//					DungeonMap.RoomOffset roomOffset = entry.getKey();
+//					float x =
+//						(roomOffset.x - minRoomX) * (renderRoomSize + renderConnSize) - roomsSizeX / 2f + renderRoomSize / 2f;
+//					float y =
+//						(roomOffset.y - minRoomY) * (renderRoomSize + renderConnSize) - roomsSizeY / 2f + renderRoomSize / 2f;
+//					float x2 = (float) (-x * Math.cos(Math.toRadians(-rotation)) + y * Math.sin(Math.toRadians(-rotation)));
+//					float y2 = (float) (-x * Math.sin(Math.toRadians(-rotation)) - y * Math.cos(Math.toRadians(-rotation)));
+//					GlStateManager.pushMatrix();
+//					GlStateManager.translate(x2, y2, 0);
+//					GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+//					// TODO: Fix the fillcorner param if needed
+//					AreaRenderer.renderIndicator(area, rotation);
+//					GlStateManager.translate(-x2, -y2, 0);
+//					GlStateManager.popMatrix();
 				}
 
 				GlStateManager.translate(-mapCenterX, -mapCenterY, 0);
@@ -476,7 +482,7 @@ public class ColorMapRenderer {
 				GlStateManager.rotate(-rotation + 180, 0, 0, 1);
 				GlStateManager.translate(-mapCenterX, -mapCenterY, 0);
 
-				GlStateManager.translate(mapCenterX - roomsSizeX / 2f, mapCenterY - roomsSizeY / 2f, 0);
+//				GlStateManager.translate(mapCenterX - roomsSizeX / 2f, mapCenterY - roomsSizeY / 2f, 0);
 
 				Tessellator tessellator = Tessellator.getInstance();
 				WorldRenderer worldrenderer = tessellator.getWorldRenderer();
@@ -627,7 +633,7 @@ public class ColorMapRenderer {
 //					k--;
 //				}
 
-				if (useFb) {
+				if (useFrameBuffer) {
 					GlStateManager.enableBlend();
 					GL14.glBlendFuncSeparate(
 						GL11.GL_SRC_ALPHA,
@@ -641,9 +647,9 @@ public class ColorMapRenderer {
 			}
 			GlStateManager.popMatrix();
 
-			if (useFb) {
+			if (useFrameBuffer) {
 				Framebuffer renderFromBuffer = mapFramebuffer1;
-				if (useShd) {
+				if (useShaders) {
 					GlStateManager.pushMatrix();
 					{
 						try {
@@ -757,7 +763,7 @@ public class ColorMapRenderer {
 	}
 
 
-	private static Framebuffer checkFramebufferSizes(Framebuffer framebuffer, int width, int height) {
+	private static Framebuffer createOrUpdateFramebufferSizes(Framebuffer framebuffer, int width, int height) {
 		if (framebuffer == null || framebuffer.framebufferWidth != width || framebuffer.framebufferHeight != height) {
 			if (framebuffer == null) {
 				framebuffer = new Framebuffer(width, height, true);
@@ -853,7 +859,7 @@ public class ColorMapRenderer {
 				GlStateManager.color(1, 1, 1, 1);
 				Utils.drawTexturedRect(0, 0, roomSize, roomSize, GL11.GL_LINEAR);
 			} else {
-				// NOTE: TODO: Check if MapColor.blackColor not being  pure black that was previously used is a problem
+				// NOTE: TODO: Check if MapColor.blackColor not being pure black that was previously used is a problem
 				Gui.drawRect(0, 0, roomSize, roomSize, MapColor.blackColor.colorValue);
 			}
 
