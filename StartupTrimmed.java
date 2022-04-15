@@ -17,7 +17,7 @@
         this.mcLanguageManager = new net.minecraft.client.resources.LanguageManager(this.metadataSerializer_, this.gameSettings.language);
         this.mcResourceManager.registerReloadListener(this.mcLanguageManager);
         refreshResources();
-        // Above two lines added to replace: net.minecraftforge.fml.client.FMLClientHandler.instance().beginMinecraftLoading(this, this.defaultResourcePacks, this.mcResourceManager);
+        // NOTE: The above two lines replace: net.minecraftforge.fml.client.FMLClientHandler.instance().beginMinecraftLoading(this, this.defaultResourcePacks, this.mcResourceManager);
         this.renderEngine = new net.minecraft.client.renderer.texture.TextureManager(this.mcResourceManager);
         this.mcResourceManager.registerReloadListener(this.renderEngine);
         // TODO: replace: net.minecraftforge.fml.client.SplashProgress.drawVanillaScreen(this.renderEngine);
@@ -40,6 +40,7 @@
         this.mcResourceManager.registerReloadListener(this.standardGalacticFontRenderer);
         this.mcResourceManager.registerReloadListener(new net.minecraft.client.resources.GrassColorReloadListener());
         this.mcResourceManager.registerReloadListener(new net.minecraft.client.resources.FoliageColorReloadListener());
+        // NOTE: javassist complains about compiling this part and it doesn't seem to break anything major to have it commented out
         // net.minecraft.stats.AchievementList.openInventory.setStatStringFormatter(new net.minecraft.stats.IStatStringFormat()
         // {
         //     /**
