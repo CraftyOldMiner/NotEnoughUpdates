@@ -187,7 +187,7 @@ class DungeonMapTest {
 
 	private void tweakModelManager() throws IOException {
 		ClassTweaker tweaker = new ClassTweaker(modelManagerFilePath);
-		tweaker.newMethodFromFile("/home/dave/git/NotEnoughUpdates/ModelManager-onResourceReload.java");
+		tweaker.newMethodFromFile("/home/dave/git/NotEnoughUpdates/ModelManager-onResourceManagerReload.java");
 		tweaker.updateMethodBody("onResourceManagerReload", "(Lnet/minecraft/client/resources/IResourceManager;)V", "{ this.onResourceManagerReloadOrig($1); }");
 		tweaker.writeToFile(modelManagerOutputPath);
 	}
