@@ -127,6 +127,10 @@ public class GuiDungeonMapEditor extends GuiScreen {
 	}
 
 	public GuiDungeonMapEditor() {
+		if (NotEnoughUpdates.INSTANCE == null) {
+			NotEnoughUpdates.INSTANCE = new NotEnoughUpdates();
+			NotEnoughUpdates.INSTANCE.initForTest();
+		}
 		DungeonMapConfig options = NotEnoughUpdates.INSTANCE.config.dungeonMap;
 		//Map Border Size
 		//buttons.add(new Button(0, 6, 37, "Small", options.dmBorderSize));

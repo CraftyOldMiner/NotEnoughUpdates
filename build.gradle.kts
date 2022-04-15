@@ -69,7 +69,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core:2.13.1")
     implementation("info.bliki.wiki:bliki-core:3.1.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
-		testImplementation("org.javassist:javassist:3.28.0-GA")
+    testImplementation("org.javassist:javassist:3.28.0-GA")
     testRuntimeOnly("org.lwjgl.lwjgl:lwjgl:2.9.3")
     testRuntimeOnly("org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-windows")
     testRuntimeOnly("org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-linux")

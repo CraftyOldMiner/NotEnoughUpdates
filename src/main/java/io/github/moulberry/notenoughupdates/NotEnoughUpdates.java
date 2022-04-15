@@ -161,41 +161,21 @@ public class NotEnoughUpdates {
 		return this.neuDir;
 	}
 
+	public void initForTest() {
+		INSTANCE = this;
+		File modsDir = new File(Minecraft.getMinecraft().mcDataDir, "mods");
+		neuDir = new File(modsDir, "notenoughupdates");
+		initCommon();
+	}
+
 	/**
 	 * Instantiates NEUIo, NEUManager and NEUOverlay instances. Registers keybinds and adds a shutdown hook to clear tmp folder.
 	 */
 	@EventHandler
 	public void preinit(FMLPreInitializationEvent event) {
 		INSTANCE = this;
-
 		neuDir = new File(event.getModConfigurationDirectory(), "notenoughupdates");
-		neuDir.mkdirs();
-
-		configFile = new File(neuDir, "configNew.json");
-
-		if (configFile.exists()) {
-			try (
-				BufferedReader reader = new BufferedReader(new InputStreamReader(
-					new FileInputStream(configFile),
-					StandardCharsets.UTF_8
-				))
-			) {
-				config = gson.fromJson(reader, NEUConfig.class);
-			} catch (Exception ignored) {
-			}
-		}
-
-		ItemCustomizeManager.loadCustomization(new File(neuDir, "itemCustomization.json"));
-		StorageManager.getInstance().loadConfig(new File(neuDir, "storageItems.json"));
-		FairySouls.load(new File(neuDir, "collected_fairy_souls.json"), gson);
-		PetInfoOverlay.loadConfig(new File(neuDir, "petCache.json"));
-		SlotLocking.getInstance().loadConfig(new File(neuDir, "slotLocking.json"));
-		ItemPriceInformation.init(new File(neuDir, "auctionable_items.json"), gson);
-
-		if (config == null) {
-			config = new NEUConfig();
-			saveConfig();
-		}
+		initCommon();
 
 		MinecraftForge.EVENT_BUS.register(this);
 		MinecraftForge.EVENT_BUS.register(new NEUEventListener(this));
@@ -274,6 +254,36 @@ public class NotEnoughUpdates {
 			}
 			//saveConfig();
 		}));
+	}
+
+	private void initCommon() {
+		neuDir.mkdirs();
+
+		configFile = new File(neuDir, "configNew.json");
+
+		if (configFile.exists()) {
+			try (
+				BufferedReader reader = new BufferedReader(new InputStreamReader(
+					new FileInputStream(configFile),
+					StandardCharsets.UTF_8
+				))
+			) {
+				config = gson.fromJson(reader, NEUConfig.class);
+			} catch (Exception ignored) {
+			}
+		}
+
+		ItemCustomizeManager.loadCustomization(new File(neuDir, "itemCustomization.json"));
+		StorageManager.getInstance().loadConfig(new File(neuDir, "storageItems.json"));
+		FairySouls.load(new File(neuDir, "collected_fairy_souls.json"), gson);
+		PetInfoOverlay.loadConfig(new File(neuDir, "petCache.json"));
+		SlotLocking.getInstance().loadConfig(new File(neuDir, "slotLocking.json"));
+		ItemPriceInformation.init(new File(neuDir, "auctionable_items.json"), gson);
+
+		if (config == null) {
+			config = new NEUConfig();
+			saveConfig();
+		}
 	}
 
 	public void saveConfig() {

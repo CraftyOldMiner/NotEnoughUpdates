@@ -76,7 +76,7 @@ public class Utils {
 
 	public static ScaledResolution pushGuiScale(int scale) {
 		if (guiScales.size() == 0) {
-			if (Loader.isModLoaded("labymod")) {
+			if (Loader.instance().getModClassLoader() != null && Loader.isModLoaded("labymod")) {
 				GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, projectionMatrixOld);
 				GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelviewMatrixOld);
 			}
