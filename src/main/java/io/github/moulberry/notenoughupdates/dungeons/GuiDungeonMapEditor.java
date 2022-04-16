@@ -432,7 +432,9 @@ public class GuiDungeonMapEditor extends GuiScreen {
 
 		Map<String, Vec4b> decorations = new HashMap<>();
 		Vec4b vec4b = new Vec4b((byte) 3, (byte) (((50) - 64) * 2), (byte) (((40) - 64) * 2), (byte) ((60) * 16 / 360));
-		decorations.put(mc.thePlayer.getName(), vec4b);
+		// TODO: fix this
+//		decorations.put(mc.thePlayer.getName(), vec4b);
+		decorations.put("Player", vec4b);
 
 		GlStateManager.color(1, 1, 1, 1);
 

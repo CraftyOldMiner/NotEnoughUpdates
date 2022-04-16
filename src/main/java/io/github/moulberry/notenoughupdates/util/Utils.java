@@ -116,7 +116,7 @@ public class Utils {
 			GlStateManager.loadIdentity();
 			GlStateManager.translate(0.0F, 0.0F, -2000.0F);
 		} else {
-			if (Loader.isModLoaded("labymod") && projectionMatrixOld.limit() > 0 && modelviewMatrixOld.limit() > 0) {
+			if (Loader.instance().getModClassLoader() != null && Loader.isModLoaded("labymod") && projectionMatrixOld.limit() > 0 && modelviewMatrixOld.limit() > 0) {
 				GlStateManager.matrixMode(GL11.GL_PROJECTION);
 				GL11.glLoadMatrix(projectionMatrixOld);
 				GlStateManager.matrixMode(GL11.GL_MODELVIEW);
