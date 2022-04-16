@@ -13,9 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.main.GameConfiguration;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.client.resources.FileResourcePack;
 import net.minecraft.client.resources.IReloadableResourceManager;
-import net.minecraft.client.resources.SimpleReloadableResourceManager;
 import net.minecraft.client.resources.data.IMetadataSerializer;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.Session;
@@ -36,42 +34,23 @@ class DungeonMapTest {
 	public TextureManager renderEngine;
 	private Minecraft mc;
 
+	// TODO: Build these path properly
+	private static final String inputClassRoot = "/home/dave/git/NotEnoughUpdates/.gradle/minecraft/";
+	private static final String outputClassRoot ="/home/dave/git/NotEnoughUpdates/build/classes/java/test/";
+
+	// TODO:
+	//  - Check whether we need to account for mix-ins, if so, can we get them from the run dir's .mixin.out/class?
+	//  - Check when the run dir is created normally
 	private static final String minecraftRunDir = "/home/dave/git/NotEnoughUpdates/run/";
-	private static final String tweakSourceRoot = "/home/dave/git/NotEnoughUpdates/.gradle/";
-	private static final String tweakOutputRoot ="/home/dave/git/NotEnoughUpdates/build/classes/java/test/";
 
-	private static final String forgeLoaderClassFilePath =
-		tweakSourceRoot + "minecraft/net/minecraftforge/fml/common/Loader.class";
-	private static final String forgeLoaderClassOutputPath =
-		tweakOutputRoot + "net/minecraftforge/fml/common/Loader.class";
-
-	private static final String forgeModelLoaderClassFilePath =
-		tweakSourceRoot + "minecraft/net/minecraftforge/client/model/ModelLoader.class";
-	private static final String forgeModelLoaderClassOutputPath =
-		tweakOutputRoot + "net/minecraftforge/client/model/ModelLoader.class";
-
-	private static final String forgeProgressBarFilePath =
-		tweakSourceRoot + "minecraft/net/minecraftforge/fml/common/ProgressManager.class";
-	private static final String forgeProgressBarOutputPath =
-		tweakOutputRoot + "net/minecraftforge/fml/common/ProgressManager.class";
-
-	private static final String forgeFmlLogFilePath =
-		tweakSourceRoot + "minecraft/net/minecraftforge/fml/common/FMLLog.class";
-	private static final String forgeFmlLogOutputPath =
-		tweakOutputRoot + "net/minecraftforge/fml/common/FMLLog.class";
-
-	private static final String minecraftClassFilePath =
-		// TODO: Figure out what is up with the Minecraft$xx.class files, change this to the common root
-		// TODO: also pick up other mixin files from the build (if they can be built)
-		minecraftRunDir + ".mixin.out/class/net/minecraft/client/Minecraft.class";
-	private static final String mineCraftClassOutputPath =
-		tweakOutputRoot + "net/minecraft/client/Minecraft.class";
-
-	private static final String modelManagerFilePath =
-		tweakSourceRoot + "minecraft/net/minecraft/client/resources/model/ModelManager.class";
-	private static final String modelManagerOutputPath =
-		tweakOutputRoot + "net/minecraft/client/resources/model/ModelManager.class";
-
+	// TODO: build these from class names
+	private static final String forgeLoaderPath = "net/minecraftforge/fml/common/Loader.class";
+	private static final String forgeModelLoaderPath = "net/minecraftforge/client/model/ModelLoader.class";
+	private static final String forgeProgressBarPath = "net/minecraftforge/fml/common/ProgressManager.class";
+	private static final String forgeFMLLogPath = "net/minecraftforge/fml/common/FMLLog.class";
+	private static final String forgeSplashProgressPath = "net/minecraftforge/fml/client/SplashProgress.class";
+	private static final String minecraftPath = "net/minecraft/client/Minecraft.class";
+	private static final String modelManagerPath = "net/minecraft/client/resources/model/ModelManager.class";
 
 	@BeforeAll
 	public static void setupForTests() {
@@ -81,74 +60,80 @@ class DungeonMapTest {
 	}
 
 	private void tweakForgeLoader() throws IOException {
-		ClassTweaker tweaker = new ClassTweaker(forgeLoaderClassFilePath);
+		ClassTweaker tweaker = new ClassTweaker(inputClassRoot + forgeLoaderPath);
 		tweaker.updateConstructorBody("{}");
-		tweaker.writeToFile(forgeLoaderClassOutputPath);
+		tweaker.writeToFile(outputClassRoot + forgeLoaderPath);
 	}
 
+	// TODO: switch to using ExprEditor instead of direct byteCode editing
 	private void tweakForgeModelLoader() throws IOException {
-		ClassTweaker tweaker = new ClassTweaker(forgeModelLoaderClassFilePath);
-
+		ClassTweaker tweaker = new ClassTweaker(inputClassRoot + forgeModelLoaderPath);
 		MethodTweaker reloadResourcesTweaker =
 			tweaker.createMethodTweaker("ModelLoader", "(Lnet/minecraft/client/resources/IResourceManager;Lnet/minecraft/client/renderer/texture/TextureMap;Lnet/minecraft/client/renderer/BlockModelShapes;)V");
-		// Replace enableVerboseMissingInfo init to just return true
-		// Original code: enableVerboseMissingInfo = (Boolean)Launch.blackboard.get("fml.deobfuscatedEnvironment") || Boolean.parseBoolean(System.getProperty("forge.verboseMissingModelLogging", "false"))
+		// Replace enableVerboseMissingInfo init to just return true to avoid trying to access an uninitialized Launch.blackboard
 		reloadResourcesTweaker.addNopTweak(67, 32);
 		reloadResourcesTweaker.addNopTweak(100, 4);
 		reloadResourcesTweaker.applyTweaks();
-		tweaker.writeToFile(forgeModelLoaderClassOutputPath);
+		tweaker.writeToFile(inputClassRoot + forgeModelLoaderPath);
 	}
 
-	// Method to create patched Minecraft class with a default constructor - probably not needed with other approach below
-	private void tweakMinecraft() throws IOException {
-		ClassTweaker tweaker = new ClassTweaker(minecraftClassFilePath);
-		tweaker.newMethodFromFile("/home/dave/git/NotEnoughUpdates/StartupTrimmed.java");
-		tweaker.newMethodFromFile("/home/dave/git/NotEnoughUpdates/Minecraft-getGLMaximumTextureSize.java");
-		tweaker.updateMethodBody("startGame", "()V", "{ startGameTest(); }");
-		tweaker.updateMethodBody("getGLMaximumTextureSize", "()I", "{ return getGLMaximumTextureSizeOrig(); }");
-		tweaker.writeToFile(mineCraftClassOutputPath);
-	}
-
-	private void tweakModelManager() throws IOException {
-		ClassTweaker tweaker = new ClassTweaker(modelManagerFilePath);
-		// TODO: See if we can retain this instead of overwriting it so we can leverage net/minecraftforge/client/model/ModelLoader.java for loading models from mods
-		tweaker.newMethodFromFile("/home/dave/git/NotEnoughUpdates/ModelManager-onResourceManagerReload.java");
-		tweaker.updateMethodBody("onResourceManagerReload", "(Lnet/minecraft/client/resources/IResourceManager;)V", "{ this.onResourceManagerReloadOrig($1); }");
-		tweaker.writeToFile(modelManagerOutputPath);
+	private void tweakForgeSplashProgress() throws IOException {
+		ClassTweaker tweaker = new ClassTweaker(inputClassRoot + forgeSplashProgressPath);
+		MethodTweaker splashProgressTweaker = tweaker.createMethodTweaker("<clinit>", "()V");
+		// Remove initialization of fmlPack
+		splashProgressTweaker.addNopTweak(32, 9);
+		splashProgressTweaker.applyTweaks();
+		tweaker.writeToFile(outputClassRoot + forgeSplashProgressPath);
 	}
 
 	private void tweakForgeProgressManager() throws IOException {
-		ClassTweaker tweaker = new ClassTweaker(forgeProgressBarFilePath);
-		ClassTweaker childClassTweaker = tweaker.getChildClassTweaker("ProgressManager$ProgressBar");
+		ClassTweaker tweaker = new ClassTweaker(inputClassRoot + forgeProgressBarPath);
 
+		ClassTweaker childClassTweaker = tweaker.getChildClassTweaker("ProgressManager$ProgressBar");
 		childClassTweaker.updateMethodBody("step",
 			"(Ljava/lang/String;)V",
 			"{}");
 
-		tweaker.makeNestedConstuctorsPublic();
+		childClassTweaker.makeConstuctorsPublic();
 		tweaker.updateMethodBody("push",
 			"(Ljava/lang/String;IZ)Lnet/minecraftforge/fml/common/ProgressManager$ProgressBar;",
 			"{ return new net.minecraftforge.fml.common.ProgressManager$ProgressBar(\"dummy bar\", 999);}");
-
 		tweaker.updateMethodBody("pop",
 			"(Lnet/minecraftforge/fml/common/ProgressManager$ProgressBar;)V",
 			"{}");
 
-		tweaker.writeToFile(forgeProgressBarOutputPath);
+		tweaker.writeToFile(outputClassRoot + forgeProgressBarPath);
 	}
 
 	private void tweakForgeFMLLog() throws IOException {
-		ClassTweaker tweaker = new ClassTweaker(forgeFmlLogFilePath);
-		tweaker.makeNestedConstuctorsPublic();
+		ClassTweaker tweaker = new ClassTweaker(inputClassRoot + forgeFMLLogPath);
 		tweaker.updateMethodBody("info",
 			"(Ljava/lang/String;[Ljava/lang/Object;)V",
 			"{}");
-		tweaker.writeToFile(forgeFmlLogOutputPath);
+		tweaker.writeToFile(outputClassRoot + forgeFMLLogPath);
+	}
+
+	// Method to create patched Minecraft class with a default constructor - probably not needed with other approach below
+	private void tweakMinecraft() throws IOException {
+		ClassTweaker tweaker = new ClassTweaker(inputClassRoot + minecraftPath);
+		// TODO:
+		//  - Figure out how to build this from the de-obfuscated JAR file instead
+		//  - Parameterize the resource pack location and GuiScreen to show
+		tweaker.newMethodFromFile("/home/dave/git/NotEnoughUpdates/StartupTrimmed.java");
+		tweaker.updateMethodBody("startGame", "()V", "{ startGameTest(); }");
+		tweaker.writeToFile(outputClassRoot + minecraftPath);
+	}
+
+	private void tweakModelManager() throws IOException {
+		ClassTweaker tweaker = new ClassTweaker(inputClassRoot + modelManagerPath);
+		// TODO: Figure out how to grab this source code from the de-obfuscated jar files
+		tweaker.newMethodFromFile("/home/dave/git/NotEnoughUpdates/ModelManager-onResourceManagerReload.java");
+		tweaker.updateMethodBody("onResourceManagerReload", "(Lnet/minecraft/client/resources/IResourceManager;)V", "{ this.onResourceManagerReloadOrig($1); }");
+		tweaker.writeToFile(outputClassRoot + modelManagerPath);
 	}
 
 	private void instantiateMinecraftClass() {
 		System.setProperty("java.net.preferIPv4Stack", "true");
-		// TODO: Build this path properly, consider parameterizing it. Populate automatically for a build?
 		File gameDir = new File(minecraftRunDir);
 		File assetsDir = new File(gameDir, "assets/");
 		File resourcePacksDir = new File(gameDir, "resourcepacks/");
@@ -194,6 +179,7 @@ class DungeonMapTest {
 	@Test
 	public void someTest1() throws NotFoundException, CannotCompileException, IOException {
 		// Generate tweaked class files to allow loading without a Minecraft process
+		tweakForgeSplashProgress();
 		tweakForgeModelLoader();
 		tweakForgeProgressManager();
 		tweakForgeFMLLog();

@@ -4,7 +4,6 @@ import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtConstructor;
-import javassist.CtField;
 import javassist.CtMethod;
 import javassist.CtNewMethod;
 import javassist.Modifier;
@@ -30,6 +29,8 @@ public class ClassTweaker {
 	private final ClassPool classPool = ClassPool.getDefault();
 	private final CtClass theClass;
 
+	private final ArrayList<MethodTweaker> methodTweakers = new ArrayList<>();
+
 	public ClassTweaker(String classFilePath) throws IOException {
 		File inputClassFile = new File(classFilePath);
 		if (!inputClassFile.exists()) {
@@ -43,6 +44,7 @@ public class ClassTweaker {
 	}
 
 	public void writeToFile(String outputFilePath) throws IOException {
+		checkForPendingMethodTweaks();
 		File outputFile = new File(outputFilePath);
 		File parentDir = new File(outputFile.getParent());
 		if (!parentDir.exists() && !parentDir.mkdirs()) {
@@ -99,42 +101,32 @@ public class ClassTweaker {
 		}
 	}
 
-	public void updateFieldInitializer(String fieldName, String newBody) {
+	public void makeConstuctorsPublic() {
 		try {
-			CtConstructor classInit = theClass.getClassInitializer();
-			CtField originalField = theClass.getField(fieldName);
-			originalField.setName(fieldName + "Old");
-			theClass.removeField(originalField);
-//			CtField newField = new CtField(CtClass.booleanType, fieldName, theClass);
-//			theClass.addField(newField, newBody);
-//		} catch (CannotCompileException e) {
-//			throw new RuntimeException(e);
-		} catch (NotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public void makeNestedConstuctorsPublic() {
-		try {
-			CtClass[] nestedClasses =  theClass.getNestedClasses();
-			for (CtClass nestedClass : nestedClasses) {
-				for (CtConstructor constructor : nestedClass.getDeclaredConstructors()) {
-					final int modifiers = constructor.getModifiers();
-					if (!Modifier.isPublic(modifiers)) {
-						constructor.setModifiers(Modifier.setPublic(modifiers));
-					}
+			for (CtConstructor constructor : theClass.getDeclaredConstructors()) {
+				final int modifiers = constructor.getModifiers();
+				if (!Modifier.isPublic(modifiers)) {
+					constructor.setModifiers(Modifier.setPublic(modifiers));
 				}
-				nestedClass.toClass();
 			}
-		} catch (NotFoundException e) {
-			throw new RuntimeException(e);
+			theClass.toClass();
 		} catch (CannotCompileException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	public MethodTweaker createMethodTweaker(String methodName, String methodDescriptor) {
-		return new MethodTweaker(methodName, methodDescriptor);
+		MethodTweaker methodTweaker = new MethodTweaker(methodName, methodDescriptor);
+		methodTweakers.add(methodTweaker);
+		return methodTweaker;
+	}
+
+	private void checkForPendingMethodTweaks() throws IllegalStateException {
+		for (MethodTweaker methodTweaker : methodTweakers) {
+			if (!methodTweaker.methodTweaks.isEmpty()) {
+				throw new IllegalStateException("There are outstanding method tweaks - call applyTweaks before saving");
+			}
+		}
 	}
 
 	public class MethodTweaker {
@@ -185,6 +177,8 @@ public class ClassTweaker {
 			} catch (BadBytecode e) {
 				throw new RuntimeException(e);
 			}
+
+			methodTweaks.clear();
 		}
 
 		public void addNopTweak(int tweakOffset, int nopCount) {

@@ -106,15 +106,14 @@
 
         this.gameSettings.pauseOnLostFocus = false;
         //this.displayGuiScreen(new net.minecraft.client.gui.GuiMainMenu());
+        net.minecraft.client.resources.FolderResourcePack folderResourcePack =
+            new net.minecraft.client.resources.FolderResourcePack(new java.io.File("/home/dave/git/NotEnoughUpdates/build/classes/java/main/"));
+        ((net.minecraft.client.resources.SimpleReloadableResourceManager)(this.mcResourceManager)).reloadResourcePack(folderResourcePack);
         this.displayGuiScreen(new io.github.moulberry.notenoughupdates.dungeons.GuiDungeonMapEditor());
         
         this.mojangLogo = null;
         this.loadingScreen = new net.minecraft.client.LoadingScreenRenderer(this);
         this.renderGlobal.makeEntityOutlineShader();
 
-        net.minecraft.client.resources.FolderResourcePack folderResourcePack =
-            new net.minecraft.client.resources.FolderResourcePack(new java.io.File("/home/dave/git/NotEnoughUpdates/build/classes/java/main/"));
-
-        ((net.minecraft.client.resources.SimpleReloadableResourceManager)(this.mcResourceManager)).reloadResourcePack(folderResourcePack);
     }
 
