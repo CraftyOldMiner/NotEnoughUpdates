@@ -382,6 +382,8 @@ public class NEUConfig extends Config {
 		@Expose
 		public boolean dev = false;
 		@Expose
+		public String devStaticKey = "";
+		@Expose
 		public boolean loadedModBefore = false;
 		@Expose
 		public String selectedCape = null;

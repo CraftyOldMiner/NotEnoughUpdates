@@ -39,9 +39,14 @@ import java.util.concurrent.Executors;
 import static io.github.moulberry.notenoughupdates.util.NotificationHandler.notificationLines;
 
 public class NEUEventListener {
-
-	private static long notificationDisplayMillis = 0;
+	private static final Minecraft mc = Minecraft.getMinecraft();
 	private final NotEnoughUpdates neu;
+	private static long notificationDisplayMillis = 0;
+
+
+	private static final long STATIC_KEY_NOTIFICATION_DONE = -1;
+	private static long staticNotificationMillis = 0;
+
 	private final ExecutorService itemPreloader = Executors.newFixedThreadPool(10);
 	private final List<ItemStack> toPreload = new ArrayList<>();
 	/**
@@ -165,6 +170,8 @@ public class NEUEventListener {
 			Minecraft.getMinecraft().getNetHandler().getNetworkManager().closeChannel(component);
 			return;
 		}
+
+		doStaticKeyCheck();
 
 		if (neu.hasSkyblockScoreboard()) {
 			if (!preloadedItems) {
@@ -322,6 +329,31 @@ public class NEUEventListener {
 				neu.manager.auctionManager.tick();
 			} else {
 				neu.manager.auctionManager.markNeedsUpdate();
+			}
+		}
+	}
+
+	private void doStaticKeyCheck() {
+		if (staticNotificationMillis == STATIC_KEY_NOTIFICATION_DONE) {
+			return;
+		}
+
+		if (!NotEnoughUpdates.INSTANCE.config.hidden.dev ||
+			NotEnoughUpdates.INSTANCE.config.hidden.devStaticKey.isEmpty()) {
+			staticNotificationMillis = STATIC_KEY_NOTIFICATION_DONE;
+			return;
+		}
+
+		if (mc != null && mc.theWorld != null && mc.thePlayer != null && !mc.isSingleplayer()) {
+			if (staticNotificationMillis == 0) {
+				staticNotificationMillis = System.currentTimeMillis();
+				return;
+			}
+
+			if (System.currentTimeMillis() - staticNotificationMillis > 1500) {
+				Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+					EnumChatFormatting.RED + "[NEU] SECURITY WARNING: You are using a static encryption key"));
+				staticNotificationMillis = STATIC_KEY_NOTIFICATION_DONE;
 			}
 		}
 	}

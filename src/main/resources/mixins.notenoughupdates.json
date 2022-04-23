@@ -29,6 +29,7 @@
 	"MixinLayerCustomHead",
 	"MixinMinecraft",
 	"MixinMouseHelper",
+	"MixinNetHandlerLoginClient",
 	"MixinNetHandlerPlayClient",
 	"MixinPlayerControllerMP",
 	"MixinRender",
