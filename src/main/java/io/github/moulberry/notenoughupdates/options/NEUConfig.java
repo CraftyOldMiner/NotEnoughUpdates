@@ -512,6 +512,8 @@ public class NEUConfig extends Config {
 		public long dailyGemstonePowderCompleted = 0L;
 		@Expose
 		public long dailyMithrilPowerCompleted = 0L;
+		@Expose
+		public long dailyHeavyPearlCompleted = 0L;
 	}
 
 	public HiddenLocationSpecific getLocationSpecific() {
