@@ -1,9 +1,29 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates;
 
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import io.github.moulberry.notenoughupdates.auction.CustomAHGui;
 import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.core.GuiScreenElementWrapper;
@@ -24,6 +44,7 @@ import io.github.moulberry.notenoughupdates.util.Constants;
 import io.github.moulberry.notenoughupdates.util.GuiTextures;
 import io.github.moulberry.notenoughupdates.util.LerpingFloat;
 import io.github.moulberry.notenoughupdates.util.NotificationHandler;
+import io.github.moulberry.notenoughupdates.util.SBInfo;
 import io.github.moulberry.notenoughupdates.util.SpecialColour;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.client.Minecraft;
@@ -78,6 +99,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -137,7 +159,7 @@ public class NEUOverlay extends Gui {
 
 	private final NEUManager manager;
 
-	private final String mobRegex = ".*?((_MONSTER)|(_ANIMAL)|(_MINIBOSS)|(_BOSS)|(_SC))$";
+	private final String mobRegex = ".*?((_MONSTER)|(_NPC)|(_ANIMAL)|(_MINIBOSS)|(_BOSS)|(_SC))$";
 	private final String petRegex = ".*?;[0-5]$";
 
 	private final ResourceLocation[] sortIcons = new ResourceLocation[]{
@@ -210,8 +232,8 @@ public class NEUOverlay extends Gui {
 
 	private boolean redrawItems = false;
 
-	private boolean searchBarHasFocus = false;
-	private final GuiTextField textField = new GuiTextField(0, null, 0, 0, 0, 0);
+	public static boolean searchBarHasFocus = false;
+	private static final GuiTextField textField = new GuiTextField(0, null, 0, 0, 0, 0);
 
 	private static final int COMPARE_MODE_ALPHABETICAL = 0;
 	private static final int COMPARE_MODE_RARITY = 1;
@@ -977,7 +999,7 @@ public class NEUOverlay extends Gui {
 		return paddingUnscaled;
 	}
 
-	public GuiTextField getTextField() {
+	public static GuiTextField getTextField() {
 		return textField;
 	}
 
@@ -1042,7 +1064,6 @@ public class NEUOverlay extends Gui {
 	 */
 	public boolean keyboardInput(boolean hoverInv) {
 		if (Minecraft.getMinecraft().currentScreen == null) return false;
-		Keyboard.enableRepeatEvents(true);
 
 		int keyPressed = Keyboard.getEventKey() == 0 ? Keyboard.getEventCharacter() + 256 : Keyboard.getEventKey();
 
@@ -1133,9 +1154,10 @@ public class NEUOverlay extends Gui {
 				}
 				if (internalname.get() != null) {
 					if (itemstack.get() != null) {
-						if (NotEnoughUpdates.INSTANCE.config.hidden.enableItemEditing && Keyboard.getEventCharacter() == 'k') {
-							Minecraft.getMinecraft().displayGuiScreen(new NEUItemEditor(manager,
-								internalname.get(), manager.getJsonForItem(itemstack.get())
+						if (NotEnoughUpdates.INSTANCE.config.apiData.repositoryEditing && Keyboard.getEventCharacter() == 'k') {
+							Minecraft.getMinecraft().displayGuiScreen(new NEUItemEditor(
+								internalname.get(),
+								manager.getJsonForItem(itemstack.get())
 							));
 							return true;
 						}
@@ -1156,11 +1178,9 @@ public class NEUOverlay extends Gui {
 								Minecraft.getMinecraft().thePlayer.inventory.addItemStackToInventory(
 									manager.jsonToStack(item));
 							}
-						} else if (NotEnoughUpdates.INSTANCE.config.hidden.enableItemEditing &&
+						} else if (NotEnoughUpdates.INSTANCE.config.apiData.repositoryEditing &&
 							Keyboard.getEventCharacter() == 'k') {
-							Minecraft.getMinecraft().displayGuiScreen(new NEUItemEditor(manager,
-								internalname.get(), item
-							));
+							Minecraft.getMinecraft().displayGuiScreen(new NEUItemEditor(internalname.get(), item));
 							return true;
 						} else if (keyPressed == manager.keybindItemSelect.getKeyCode() &&
 							NotEnoughUpdates.INSTANCE.config.toolbar.searchBar) {
@@ -1189,7 +1209,7 @@ public class NEUOverlay extends Gui {
 		updateSearch();
 	}
 
-	String[] rarityArr = new String[]{
+	public static String[] rarityArr = new String[]{
 		EnumChatFormatting.WHITE + EnumChatFormatting.BOLD.toString() + "COMMON",
 		EnumChatFormatting.GREEN + EnumChatFormatting.BOLD.toString() + "UNCOMMON",
 		EnumChatFormatting.BLUE + EnumChatFormatting.BOLD.toString() + "RARE",
@@ -1210,7 +1230,7 @@ public class NEUOverlay extends Gui {
 	 * 5 = MYTHIC
 	 * 6 = SPECIAL
 	 */
-	public int getRarity(JsonArray lore) {
+	public static int getRarity(JsonArray lore) {
 		for (int i = lore.size() - 1; i >= 0; i--) {
 			String line = lore.get(i).getAsString();
 
@@ -1871,17 +1891,48 @@ public class NEUOverlay extends Gui {
 		}
 	}
 
-	private ItemStack getWardrobeSlot(int armourSlot) {
-		if (isInNamedGui("Your Equipment")) {
-			return getChestSlotsAsItemStack(armourSlot);
-		} else return null;
-	}
-
 	public ItemStack slot1 = null;
 	public ItemStack slot2 = null;
 	public ItemStack slot3 = null;
 	public ItemStack slot4 = null;
 	public ItemStack petSlot = null;
+	private String lastProfile;
+
+	private ItemStack getWardrobeSlot(int armourSlot) {
+		if (SBInfo.getInstance().currentProfile == null) {
+			return null;
+		}
+
+		if (!Objects.equals(SBInfo.getInstance().currentProfile, lastProfile)) {
+			lastProfile = SBInfo.getInstance().currentProfile;
+			slot1 = null;
+			slot2 = null;
+			slot3 = null;
+			slot4 = null;
+			petSlot = null;
+		}
+
+		if (isInNamedGui("Your Equipment")) {
+			ItemStack itemStack = getChestSlotsAsItemStack(armourSlot);
+			if (itemStack != null) {
+				JsonObject itemToSave = NotEnoughUpdates.INSTANCE.manager.getJsonForItem(itemStack);
+				if (!itemToSave.has("internalname")) {
+					//would crash without internalName when trying to construct the ItemStack again
+					itemToSave.add("internalname", new JsonPrimitive("_"));
+				}
+				NotEnoughUpdates.INSTANCE.config.getProfileSpecific().savedEquipment.put(armourSlot, itemToSave);
+				return itemStack;
+			}
+		} else {
+			if (NotEnoughUpdates.INSTANCE.config.getProfileSpecific().savedEquipment.containsKey(armourSlot)) {
+				//don't use cache since the internalName is identical in most cases
+				return NotEnoughUpdates.INSTANCE.manager.jsonToStack(NotEnoughUpdates.INSTANCE.config.getProfileSpecific().savedEquipment
+					.get(armourSlot)
+					.getAsJsonObject(), false);
+			}
+		}
+		return null;
+	}
 
 	public static boolean isRenderingArmorHud() {
 		return renderingArmorHud;

@@ -1,7 +1,27 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.miscgui;
 
 import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
+import io.github.moulberry.notenoughupdates.mixins.AccessorGuiContainer;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import io.github.moulberry.notenoughupdates.util.XPInformation;
 import net.minecraft.client.Minecraft;
@@ -61,12 +81,23 @@ public class KatSitterOverlay {
 		int currentWidth = font.getStringWidth(currentText);
 		String upgradedText = "Upgraded pet level: " + upgradedLevel;
 		int upgradedWidth = font.getStringWidth(upgradedText);
-		int left = gui.guiLeft - 30 - (upgradedLevel == null ? Math.max(upgradedWidth, currentWidth) : currentWidth);
+		int left = ((AccessorGuiContainer) gui).getGuiLeft() - 30 - (upgradedLevel == null ? Math.max(
+			upgradedWidth,
+			currentWidth
+		) : currentWidth);
 		GlStateManager.disableLighting();
 		GlStateManager.color(1F, 1F, 1F, 1F);
-		Utils.drawStringScaled(currentText, font, left, gui.guiTop + 25, false, 0xFFD700, 1F);
+		Utils.drawStringScaled(currentText, font, left, ((AccessorGuiContainer) gui).getGuiTop() + 25, false, 0xFFD700, 1F);
 		if (upgradedLevel != null)
-			Utils.drawStringScaled(upgradedText, font, left, gui.guiTop + 45, false, 0xFFD700, 1F);
+			Utils.drawStringScaled(
+				upgradedText,
+				font,
+				left,
+				((AccessorGuiContainer) gui).getGuiTop() + 45,
+				false,
+				0xFFD700,
+				1F
+			);
 	}
 
 	public String nextRarity(String currentRarity) {

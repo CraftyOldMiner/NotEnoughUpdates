@@ -1,14 +1,43 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import io.github.moulberry.notenoughupdates.auction.APIManager;
+import io.github.moulberry.notenoughupdates.events.RepositoryReloadEvent;
 import io.github.moulberry.notenoughupdates.miscgui.GuiItemRecipe;
 import io.github.moulberry.notenoughupdates.miscgui.KatSitterOverlay;
 import io.github.moulberry.notenoughupdates.recipes.CraftingOverlay;
 import io.github.moulberry.notenoughupdates.recipes.CraftingRecipe;
 import io.github.moulberry.notenoughupdates.recipes.Ingredient;
 import io.github.moulberry.notenoughupdates.recipes.NeuRecipe;
-import io.github.moulberry.notenoughupdates.util.*;
+import io.github.moulberry.notenoughupdates.util.Constants;
+import io.github.moulberry.notenoughupdates.util.HotmInformation;
+import io.github.moulberry.notenoughupdates.util.HypixelApi;
+import io.github.moulberry.notenoughupdates.util.SBInfo;
+import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.init.Blocks;
@@ -16,24 +45,48 @@ import net.minecraft.init.Items;
 import net.minecraft.inventory.ContainerChest;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.nbt.NBTException;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.ProgressManager;
 import org.apache.commons.io.FileUtils;
 import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.Display;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.swing.JDialog;
-import javax.swing.JOptionPane;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -44,6 +97,7 @@ public class NEUManager {
 	public final APIManager auctionManager;
 
 	private final TreeMap<String, JsonObject> itemMap = new TreeMap<>();
+	private boolean hasBeenLoadedBefore = false;
 
 	private final TreeMap<String, HashMap<String, List<Integer>>> titleWordMap = new TreeMap<>();
 	private final TreeMap<String, HashMap<String, List<Integer>>> loreWordMap = new TreeMap<>();
@@ -73,12 +127,6 @@ public class NEUManager {
 
 	private final Map<String, ItemStack> itemstackCache = new HashMap<>();
 
-	private final ExecutorService repoLoaderES = Executors.newSingleThreadExecutor();
-
-	private static String GIT_COMMITS_URL;
-
-	// TODO: private final Map<String, NeuItem>
-
 	private final Set<NeuRecipe> recipes = new HashSet<>();
 	private final HashMap<String, Set<NeuRecipe>> recipesMap = new HashMap<>();
 	private final HashMap<String, Set<NeuRecipe>> usagesMap = new HashMap<>();
@@ -101,8 +149,6 @@ public class NEUManager {
 		this.hotm = new HotmInformation(neu);
 		this.craftingOverlay = new CraftingOverlay(this);
 		this.katSitterOverlay = new KatSitterOverlay();
-
-		GIT_COMMITS_URL = neu.config.hidden.repoCommitsURL;
 
 		gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -160,186 +206,74 @@ public class NEUManager {
 		}
 	}
 
+	public CompletableFuture<Boolean> fetchRepository() {
+		return CompletableFuture.<Boolean>supplyAsync(() -> {
+			try {
+				JsonObject currentCommitJSON = getJsonFromFile(new File(configLocation, "currentCommit.json"));
+
+				latestRepoCommit = null;
+				try (Reader inReader = new InputStreamReader(new URL(neu.config.apiData.getCommitApiUrl()).openStream())) {
+					JsonObject commits = gson.fromJson(inReader, JsonObject.class);
+					latestRepoCommit = commits.get("sha").getAsString();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				if (latestRepoCommit == null || latestRepoCommit.isEmpty()) return false;
+
+				if (new File(configLocation, "repo").exists() && new File(configLocation, "repo/items").exists()) {
+					if (currentCommitJSON != null && currentCommitJSON.get("sha").getAsString().equals(latestRepoCommit)) {
+						return false;
+					}
+				}
+				Utils.recursiveDelete(repoLocation);
+				repoLocation.mkdirs();
+
+				File itemsZip = new File(repoLocation, "neu-items-master.zip");
+				try {
+					itemsZip.createNewFile();
+				} catch (IOException e) {
+					return false;
+				}
+
+				URL url = new URL(neu.config.apiData.getDownloadUrl(latestRepoCommit));
+				URLConnection urlConnection = url.openConnection();
+				urlConnection.setConnectTimeout(15000);
+				urlConnection.setReadTimeout(30000);
+
+				try (InputStream is = urlConnection.getInputStream()) {
+					FileUtils.copyInputStreamToFile(is, itemsZip);
+				} catch (IOException e) {
+					e.printStackTrace();
+					System.err.println("Failed to download NEU Repo! Please report this issue to the mod creator");
+					return false;
+				}
+
+				unzipIgnoreFirstFolder(itemsZip.getAbsolutePath(), repoLocation.getAbsolutePath());
+
+				if (currentCommitJSON == null || !currentCommitJSON.get("sha").getAsString().equals(latestRepoCommit)) {
+					JsonObject newCurrentCommitJSON = new JsonObject();
+					newCurrentCommitJSON.addProperty("sha", latestRepoCommit);
+					try {
+						writeJson(newCurrentCommitJSON, new File(configLocation, "currentCommit.json"));
+					} catch (IOException ignored) {
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return true;
+		});
+	}
+
 	/**
 	 * Called when the game is first loaded. Compares the local repository to the github repository and handles the
 	 * downloading of new/updated files. This then calls the "loadItem" method for every item in the local repository.
 	 */
 	public void loadItemInformation() {
-        /*File repoFile = new File(configLocation, "repo2");
-        repoFile.mkdirs();
-
-        try(Git git = Git.init().setDirectory(repoFile).call()) {
-            StoredConfig config = git.getRepository().getConfig();
-            config.setString("branch", "master", "merge", "refs/heads/master");
-            config.setString("branch", "master", "remote", "origin");
-            config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
-            config.setString("remote", "origin", "url", "https://github.com/Moulberry/NotEnoughUpdates-REPO.git");
-            config.save();
-
-            git.remoteAdd().setName("origin").setUri(new URIish("https://github.com/Moulberry/NotEnoughUpdates-REPO.git")).call();
-            PullResult result = git.pull().setRemote("origin").setTimeout(30000).call();
-            System.out.println("successful pull: " + result.isSuccessful());
-        } catch(Exception e) {
-            e.printStackTrace();
-        }*/
-
-        /*if(repoFile.mkdirs()) {
-            try {
-                Git.cloneRepository()
-                    .setURI("https://github.com/Moulberry/NotEnoughUpdates-REPO.git")
-                    .setDirectory(repoFile)
-                    .call();
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-
-        }*/
-
-		repoLoaderES.submit(() -> {
-			JDialog dialog = null;
-			try {
-				if (NotEnoughUpdates.INSTANCE.config.hidden.autoupdate) {
-					JOptionPane pane = new JOptionPane("Getting items to download from remote repository.");
-					dialog = pane.createDialog("NotEnoughUpdates Remote Sync");
-					dialog.setModal(false);
-					if (NotEnoughUpdates.INSTANCE.config.hidden.dev) dialog.setVisible(true);
-
-					if (Display.isActive()) dialog.toFront();
-
-					JsonObject currentCommitJSON = getJsonFromFile(new File(configLocation, "currentCommit.json"));
-
-					latestRepoCommit = null;
-					try (Reader inReader = new InputStreamReader(new URL(GIT_COMMITS_URL).openStream())) {
-						JsonObject commits = gson.fromJson(inReader, JsonObject.class);
-						latestRepoCommit = commits.get("sha").getAsString();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					if (latestRepoCommit == null || latestRepoCommit.isEmpty()) return;
-
-					if (new File(configLocation, "repo").exists() && new File(configLocation, "repo/items").exists()) {
-						if (currentCommitJSON != null && currentCommitJSON.get("sha").getAsString().equals(latestRepoCommit)) {
-							dialog.setVisible(false);
-							return;
-						}
-					}
-
-					if (Display.isActive()) dialog.toFront();
-
-					Utils.recursiveDelete(repoLocation);
-					repoLocation.mkdirs();
-
-					String dlUrl = neu.config.hidden.repoURL;
-
-					pane.setMessage("Downloading NEU Master Archive. (DL# >20)");
-					dialog.pack();
-					if (NotEnoughUpdates.INSTANCE.config.hidden.dev) dialog.setVisible(true);
-					if (Display.isActive()) dialog.toFront();
-
-					File itemsZip = new File(repoLocation, "neu-items-master.zip");
-					try {
-						itemsZip.createNewFile();
-					} catch (IOException e) {
-						return;
-					}
-
-					URL url = new URL(dlUrl);
-					URLConnection urlConnection = url.openConnection();
-					urlConnection.setConnectTimeout(15000);
-					urlConnection.setReadTimeout(30000);
-
-					try (InputStream is = urlConnection.getInputStream()) {
-						FileUtils.copyInputStreamToFile(is, itemsZip);
-					} catch (IOException e) {
-						dialog.dispose();
-						e.printStackTrace();
-						System.err.println("Failed to download NEU Repo! Please report this issue to the mod creator");
-						return;
-					}
-					/*try (
-						BufferedInputStream inStream = new BufferedInputStream(urlConnection.getInputStream());
-						FileOutputStream fileOutputStream = new FileOutputStream(itemsZip)
-					) {
-						byte dataBuffer[] = new byte[1024];
-						int bytesRead;
-						while ((bytesRead = inStream.read(dataBuffer, 0, 1024)) != -1) {
-							fileOutputStream.write(dataBuffer, 0, bytesRead);
-						}
-					} catch (IOException e) {
-						dialog.dispose();
-						return;
-					}*/
-
-					pane.setMessage("Unzipping NEU Master Archive.");
-					dialog.pack();
-					//dialog.setVisible(true);
-					if (Display.isActive()) dialog.toFront();
-
-					unzipIgnoreFirstFolder(itemsZip.getAbsolutePath(), repoLocation.getAbsolutePath());
-
-					if (currentCommitJSON == null || !currentCommitJSON.get("sha").getAsString().equals(latestRepoCommit)) {
-						JsonObject newCurrentCommitJSON = new JsonObject();
-						newCurrentCommitJSON.addProperty("sha", latestRepoCommit);
-						try {
-							writeJson(newCurrentCommitJSON, new File(configLocation, "currentCommit.json"));
-						} catch (IOException ignored) {
-						}
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				if (dialog != null) dialog.dispose();
-			}
-
-			File items = new File(repoLocation, "items");
-			if (items.exists()) {
-				File[] itemFiles = new File(repoLocation, "items").listFiles();
-				if (itemFiles != null) {
-					ProgressManager.ProgressBar bar = ProgressManager.push("Loading recipes", itemFiles.length);
-					for (File f : itemFiles) {
-						String internalname = f.getName().substring(0, f.getName().length() - 5);
-						bar.step(internalname);
-						synchronized (itemMap) {
-							if (!itemMap.containsKey(internalname)) {
-								loadItem(internalname);
-							}
-						}
-					}
-					ProgressManager.pop(bar);
-				}
-			}
-
-			try {
-				Constants.reload();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
-
-		File items = new File(repoLocation, "items");
-		if (items.exists()) {
-			File[] itemFiles = new File(repoLocation, "items").listFiles();
-			if (itemFiles != null) {
-				ProgressManager.ProgressBar bar = ProgressManager.push("Loading items", itemFiles.length);
-				for (File f : itemFiles) {
-					String internalname = f.getName().substring(0, f.getName().length() - 5);
-					bar.step(internalname);
-					synchronized (itemMap) {
-						if (!itemMap.containsKey(internalname)) {
-							loadItem(internalname);
-						}
-					}
-				}
-				ProgressManager.pop(bar);
-			}
-		}
-
-		try {
-			Constants.reload();
-		} catch (Exception e) {
-			e.printStackTrace();
+		if (NotEnoughUpdates.INSTANCE.config.apiData.autoupdate) {
+			fetchRepository().thenRun(this::reloadRepository);
+		} else {
+			reloadRepository();
 		}
 	}
 
@@ -435,6 +369,10 @@ public class NEUManager {
 		}
 		for (Ingredient input : recipe.getIngredients()) {
 			usagesMap.computeIfAbsent(input.getInternalItemId(), ignored -> new HashSet<>()).add(recipe);
+		}
+		for (Ingredient catalystItem : recipe.getCatalystItems()) {
+			recipesMap.computeIfAbsent(catalystItem.getInternalItemId(), ignored -> new HashSet<>()).add(recipe);
+			usagesMap.computeIfAbsent(catalystItem.getInternalItemId(), ignored -> new HashSet<>()).add(recipe);
 		}
 	}
 
@@ -1554,21 +1492,64 @@ public class NEUManager {
 		}
 	}
 
-	public void reloadRepository() {
-		File items = new File(repoLocation, "items");
-		if (items.exists()) {
-			recipes.clear();
-			recipesMap.clear();
-			usagesMap.clear();
+	public CompletableFuture<List<String>> userFacingRepositoryReload() {
+		String lastCommit = NotEnoughUpdates.INSTANCE.manager.latestRepoCommit;
+		NotEnoughUpdates.INSTANCE.manager.resetRepo();
+		return NotEnoughUpdates.INSTANCE.manager
+			.fetchRepository()
+			.thenCompose(ignored -> NotEnoughUpdates.INSTANCE.manager.reloadRepository())
+			.<List<String>>thenApply(ignored -> {
+				String newCommitHash = NotEnoughUpdates.INSTANCE.manager.latestRepoCommit;
+				String newCommitShortHash = (newCommitHash == null ? "MISSING" : newCommitHash.substring(0, 7));
+				return Arrays.asList(
+					"§aRepository reloaded.",
+					(lastCommit == null
+						? "§eYou downloaded the repository version §b" + newCommitShortHash + "§e."
+						: "§eYou updated your repository from §b" + lastCommit.substring(0, 7) + "§e to §b" +
+							newCommitShortHash + "§e."
+					)
+				);
+			})
+			.exceptionally(ex -> {
+				ex.printStackTrace();
+				return Arrays.asList(
+					"§cRepository not fully reloaded.",
+					"§cThere was an error reloading your repository.",
+					"§cThis might be caused by an outdated version of neu",
+					"§c(or by not using the dangerous repository if you are using a prerelease of neu).",
+					"§aYour repository will still work, but is in a suboptimal state.",
+					"§eJoin §bdiscord.gg/moulberry §efor help."
+				);
+			});
+	}
 
-			File[] itemFiles = new File(repoLocation, "items").listFiles();
-			if (itemFiles != null) {
-				for (File f : itemFiles) {
-					String internalname = f.getName().substring(0, f.getName().length() - 5);
-					loadItem(internalname);
+	public CompletableFuture<Void> reloadRepository() {
+		CompletableFuture<Void> comp = new CompletableFuture<>();
+		Minecraft.getMinecraft().addScheduledTask(() -> {
+			try {
+				File items = new File(repoLocation, "items");
+				if (items.exists()) {
+					recipes.clear();
+					recipesMap.clear();
+					usagesMap.clear();
+
+					File[] itemFiles = new File(repoLocation, "items").listFiles();
+					if (itemFiles != null) {
+						for (File f : itemFiles) {
+							String internalname = f.getName().substring(0, f.getName().length() - 5);
+							loadItem(internalname);
+						}
+					}
 				}
+
+				new RepositoryReloadEvent(repoLocation, !hasBeenLoadedBefore).post();
+				hasBeenLoadedBefore = true;
+				comp.complete(null);
+			} catch (Exception e) {
+				comp.completeExceptionally(e);
 			}
-		}
+		});
+		return comp;
 	}
 
 	public ItemStack createItem(String internalname) {

@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.miscgui;
 
 import com.google.common.collect.ImmutableList;
@@ -8,6 +27,7 @@ import io.github.moulberry.notenoughupdates.recipes.RecipeType;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
@@ -22,8 +42,11 @@ import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
 
 public class GuiItemRecipe extends GuiScreen {
 	public static final ResourceLocation resourcePacksTexture = new ResourceLocation("textures/gui/resource_packs.png");
@@ -68,6 +91,13 @@ public class GuiItemRecipe extends GuiScreen {
 		}
 	}
 
+	@Override
+	public void initGui() {
+		this.guiLeft = (width - this.xSize) / 2;
+		this.guiTop = (height - this.ySize) / 2;
+		changeRecipe(0, 0);
+	}
+
 	public NeuRecipe getCurrentRecipe() {
 		List<NeuRecipe> currentRecipes = getCurrentRecipeList();
 		currentIndex = MathHelper.clamp_int(currentIndex, 0, currentRecipes.size() - 1);
@@ -84,8 +114,8 @@ public class GuiItemRecipe extends GuiScreen {
 	}
 
 	public boolean isWithinRect(int x, int y, int topLeftX, int topLeftY, int width, int height) {
-		return topLeftX <= x && x <= topLeftX + width
-			&& topLeftY <= y && y <= topLeftY + height;
+		return topLeftX <= x && x < topLeftX + width
+			&& topLeftY <= y && y < topLeftY + height;
 	}
 
 	private ImmutableList<RecipeSlot> getAllRenderedSlots() {
@@ -98,9 +128,6 @@ public class GuiItemRecipe extends GuiScreen {
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
 		drawDefaultBackground();
 		FontRenderer fontRendererObj = Minecraft.getMinecraft().fontRendererObj;
-
-		this.guiLeft = (width - this.xSize) / 2;
-		this.guiTop = (height - this.ySize) / 2;
 
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
@@ -131,7 +158,7 @@ public class GuiItemRecipe extends GuiScreen {
 		);
 
 		currentRecipe.drawExtraInfo(this, mouseX, mouseY);
-
+		super.drawScreen(mouseX, mouseY, partialTicks);
 		for (RecipeSlot slot : slots) {
 			if (isWithinRect(mouseX, mouseY, slot.getX(this), slot.getY(this), SLOT_SIZE, SLOT_SIZE)) {
 				if (slot.getItemStack() == null) continue;
@@ -292,6 +319,18 @@ public class GuiItemRecipe extends GuiScreen {
 		}
 	}
 
+	public void changeRecipe(int tabIndex, int recipeIndex) {
+		buttonList.removeAll(getCurrentRecipe().getExtraButtons(this));
+		currentTab = tabIndex;
+		currentIndex = recipeIndex;
+		buttonList.addAll(getCurrentRecipe().getExtraButtons(this));
+	}
+
+	@Override
+	protected void actionPerformed(GuiButton p_actionPerformed_1_) throws IOException {
+		getCurrentRecipe().actionPerformed(p_actionPerformed_1_);
+	}
+
 	@Override
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
@@ -310,7 +349,7 @@ public class GuiItemRecipe extends GuiScreen {
 			BUTTON_HEIGHT
 		) &&
 			currentIndex > 0) {
-			currentIndex = currentIndex - 1;
+			changeRecipe(currentTab, currentIndex - 1);
 			Utils.playPressSound();
 			return;
 		}
@@ -324,7 +363,7 @@ public class GuiItemRecipe extends GuiScreen {
 			BUTTON_HEIGHT
 		) &&
 			currentIndex < getCurrentRecipeList().size()) {
-			currentIndex = currentIndex + 1;
+			changeRecipe(currentTab, currentIndex + 1);
 			Utils.playPressSound();
 			return;
 		}
@@ -338,7 +377,7 @@ public class GuiItemRecipe extends GuiScreen {
 				TAB_SIZE_X,
 				TAB_SIZE_Y
 			)) {
-				currentTab = i;
+				changeRecipe(i, currentIndex);
 				Utils.playPressSound();
 				return;
 			}
@@ -349,10 +388,14 @@ public class GuiItemRecipe extends GuiScreen {
 				ItemStack itemStack = slot.getItemStack();
 				if (mouseButton == 0) {
 					manager.displayGuiItemRecipe(manager.getInternalNameForItem(itemStack));
+					return;
 				} else if (mouseButton == 1) {
 					manager.displayGuiItemUsages(manager.getInternalNameForItem(itemStack));
+					return;
 				}
 			}
 		}
+
+		currentRecipe.mouseClicked(this, mouseX, mouseY, mouseButton);
 	}
 }

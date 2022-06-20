@@ -1,7 +1,32 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.options.seperateSections;
 
 import com.google.gson.annotations.Expose;
-import io.github.moulberry.notenoughupdates.core.config.annotations.*;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigAccordionId;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorAccordion;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorBoolean;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorColour;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorDropdown;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorSlider;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigOption;
 
 public class Fishing {
 	@Expose
@@ -204,4 +229,39 @@ public class Fishing {
 	@ConfigEditorColour
 	@ConfigAccordionId(id = 4)
 	public String otherRodColour = "0:255:0:0:0";
+
+	@ConfigOption(
+		name = "Fishing Timer",
+		desc = ""
+	)
+	@ConfigEditorAccordion(id = 6)
+	public boolean fishingAccordion = false;
+
+	@Expose
+	@ConfigOption(
+		name = "Display a Fishing Timer",
+		desc = "Display a timer above your bobber showing your current time"
+	)
+	@ConfigEditorBoolean
+	@ConfigAccordionId(id = 6)
+	public boolean fishingTimer = false;
+
+	@Expose
+	@ConfigOption(
+		name = "Fishing timer color",
+		desc = "Color of the fishing timer"
+	)
+	@ConfigEditorColour
+	@ConfigAccordionId(id = 6)
+	public String fishingTimerColor = "0:255:0:0:0";
+
+	@Expose
+	@ConfigOption(
+		name = "Fishing timer color (30s)",
+		desc = "Color of the fishing timer after 30 seconds or more have passed"
+	)
+	@ConfigEditorColour
+	@ConfigAccordionId(id = 6)
+	public String fishingTimerColor30SecPlus = "0:255:0:0:0";
+
 }

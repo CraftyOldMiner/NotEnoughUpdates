@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.listener;
 
 import com.google.common.collect.Lists;
@@ -14,6 +33,7 @@ import io.github.moulberry.notenoughupdates.auction.CustomAHGui;
 import io.github.moulberry.notenoughupdates.commands.profile.ViewProfileCommand;
 import io.github.moulberry.notenoughupdates.core.GuiScreenElementWrapper;
 import io.github.moulberry.notenoughupdates.dungeons.DungeonWin;
+import io.github.moulberry.notenoughupdates.itemeditor.NEUItemEditor;
 import io.github.moulberry.notenoughupdates.miscfeatures.AuctionBINWarning;
 import io.github.moulberry.notenoughupdates.miscfeatures.BetterContainers;
 import io.github.moulberry.notenoughupdates.miscfeatures.CrystalMetalDetectorSolver;
@@ -25,6 +45,7 @@ import io.github.moulberry.notenoughupdates.miscgui.GuiInvButtonEditor;
 import io.github.moulberry.notenoughupdates.miscgui.GuiItemRecipe;
 import io.github.moulberry.notenoughupdates.miscgui.StorageOverlay;
 import io.github.moulberry.notenoughupdates.miscgui.TradeWindow;
+import io.github.moulberry.notenoughupdates.mixins.AccessorGuiContainer;
 import io.github.moulberry.notenoughupdates.options.NEUConfig;
 import io.github.moulberry.notenoughupdates.overlays.AuctionSearchOverlay;
 import io.github.moulberry.notenoughupdates.overlays.OverlayManager;
@@ -33,6 +54,7 @@ import io.github.moulberry.notenoughupdates.overlays.TextOverlay;
 import io.github.moulberry.notenoughupdates.profileviewer.GuiProfileViewer;
 import io.github.moulberry.notenoughupdates.util.NotificationHandler;
 import io.github.moulberry.notenoughupdates.util.RequestFocusListener;
+import io.github.moulberry.notenoughupdates.util.SBInfo;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -55,6 +77,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.StringUtils;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -73,17 +96,19 @@ import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -107,6 +132,10 @@ public class RenderListener {
 	private long buttonHoveredMillis = 0;
 	private int inventoryLoadedTicks = 0;
 	private String loadedInvName = "";
+	//NPC parsing
+	private String correctingItem;
+	private boolean typing;
+	private HashMap<String, String> cachedDefinitions;
 
 	public RenderListener(NotEnoughUpdates neu) {
 		this.neu = neu;
@@ -324,10 +353,10 @@ public class RenderListener {
 
 			if (event.gui instanceof GuiContainer) {
 				try {
-					int xSize = ((GuiContainer) event.gui).xSize;
-					int ySize = ((GuiContainer) event.gui).ySize;
-					int guiLeft = ((GuiContainer) event.gui).guiLeft;
-					int guiTop = ((GuiContainer) event.gui).guiTop;
+					int xSize = ((AccessorGuiContainer) event.gui).getXSize();
+					int ySize = ((AccessorGuiContainer) event.gui).getYSize();
+					int guiLeft = ((AccessorGuiContainer) event.gui).getGuiLeft();
+					int guiTop = ((AccessorGuiContainer) event.gui).getGuiTop();
 
 					hoverInv = event.getMouseX() > guiLeft && event.getMouseX() < guiLeft + xSize && event.getMouseY() > guiTop &&
 						event.getMouseY() < guiTop + ySize;
@@ -449,10 +478,10 @@ public class RenderListener {
 
 			GlStateManager.translate(0, 0, zOffset);
 
-			int xSize = ((GuiContainer) event.gui).xSize;
-			int ySize = ((GuiContainer) event.gui).ySize;
-			int guiLeft = ((GuiContainer) event.gui).guiLeft;
-			int guiTop = ((GuiContainer) event.gui).guiTop;
+			int xSize = ((AccessorGuiContainer) event.gui).getXSize();
+			int ySize = ((AccessorGuiContainer) event.gui).getYSize();
+			int guiLeft = ((AccessorGuiContainer) event.gui).getGuiLeft();
+			int guiTop = ((AccessorGuiContainer) event.gui).getGuiTop();
 
 			if (!NEUApi.disableInventoryButtons) {
 				for (NEUConfig.InventoryButton button : NotEnoughUpdates.INSTANCE.config.hidden.inventoryButtons) {
@@ -556,10 +585,10 @@ public class RenderListener {
 		if (!doInventoryButtons) return;
 		if (NotEnoughUpdates.INSTANCE.hasSkyblockScoreboard() && NotificationHandler.shouldRenderOverlay(event.gui) &&
 			event.gui instanceof GuiContainer) {
-			int xSize = ((GuiContainer) event.gui).xSize;
-			int ySize = ((GuiContainer) event.gui).ySize;
-			int guiLeft = ((GuiContainer) event.gui).guiLeft;
-			int guiTop = ((GuiContainer) event.gui).guiTop;
+			int xSize = ((AccessorGuiContainer) event.gui).getXSize();
+			int ySize = ((AccessorGuiContainer) event.gui).getYSize();
+			int guiLeft = ((AccessorGuiContainer) event.gui).getGuiLeft();
+			int guiTop = ((AccessorGuiContainer) event.gui).getGuiTop();
 
 			if (!NEUApi.disableInventoryButtons) {
 				for (NEUConfig.InventoryButton button : NotEnoughUpdates.INSTANCE.config.hidden.inventoryButtons) {
@@ -635,9 +664,9 @@ public class RenderListener {
 
 		if (gui instanceof GuiChest && NotEnoughUpdates.INSTANCE.config.dungeons.profitDisplayLoc != 2) {
 			try {
-				int xSize = ((GuiContainer) gui).xSize;
-				int guiLeft = ((GuiContainer) gui).guiLeft;
-				int guiTop = ((GuiContainer) gui).guiTop;
+				int xSize = ((AccessorGuiContainer) gui).getXSize();
+				int guiLeft = ((AccessorGuiContainer) gui).getGuiLeft();
+				int guiTop = ((AccessorGuiContainer) gui).getGuiTop();
 
 				GuiChest eventGui = (GuiChest) gui;
 				ContainerChest cc = (ContainerChest) eventGui.inventorySlots;
@@ -891,7 +920,11 @@ public class RenderListener {
 			ContainerChest cc = (ContainerChest) eventGui.inventorySlots;
 			containerName = cc.getLowerChestInventory().getDisplayName().getUnformattedText();
 			if (containerName.contains(" Profile") && BetterContainers.profileViewerStackIndex != -1 &&
-				eventGui.isMouseOverSlot(cc.inventorySlots.get(BetterContainers.profileViewerStackIndex), mouseX, mouseY) &&
+				((AccessorGuiContainer) eventGui).doIsMouseOverSlot(
+					cc.inventorySlots.get(BetterContainers.profileViewerStackIndex),
+					mouseX,
+					mouseY
+				) &&
 				Mouse.getEventButton() >= 0) {
 				event.setCanceled(true);
 				if (Mouse.getEventButtonState() && eventGui.inventorySlots.inventorySlots.get(22).getStack() != null &&
@@ -950,10 +983,10 @@ public class RenderListener {
 		if (!doInventoryButtons) return;
 		if (NotEnoughUpdates.INSTANCE.hasSkyblockScoreboard() && NotificationHandler.shouldRenderOverlay(event.gui) &&
 			Mouse.getEventButton() >= 0 && event.gui instanceof GuiContainer) {
-			int xSize = ((GuiContainer) event.gui).xSize;
-			int ySize = ((GuiContainer) event.gui).ySize;
-			int guiLeft = ((GuiContainer) event.gui).guiLeft;
-			int guiTop = ((GuiContainer) event.gui).guiTop;
+			int xSize = ((AccessorGuiContainer) event.gui).getXSize();
+			int ySize = ((AccessorGuiContainer) event.gui).getYSize();
+			int guiLeft = ((AccessorGuiContainer) event.gui).getGuiLeft();
+			int guiTop = ((AccessorGuiContainer) event.gui).getGuiTop();
 			if (!NEUApi.disableInventoryButtons) {
 				for (NEUConfig.InventoryButton button : NotEnoughUpdates.INSTANCE.config.hidden.inventoryButtons) {
 					if (!button.isActive()) continue;
@@ -1011,11 +1044,26 @@ public class RenderListener {
 	 */
 	@SubscribeEvent
 	public void onGuiScreenKeyboard(GuiScreenEvent.KeyboardInputEvent.Pre event) {
-		if (Keyboard.isKeyDown(Keyboard.KEY_B) && NotEnoughUpdates.INSTANCE.config.hidden.dev) {
-			if (Minecraft.getMinecraft().currentScreen instanceof GuiChest) {
-				GuiChest eventGui = (GuiChest) Minecraft.getMinecraft().currentScreen;
-				ContainerChest cc = (ContainerChest) eventGui.inventorySlots;
-				IInventory lower = cc.getLowerChestInventory();
+		Keyboard.enableRepeatEvents(true);
+		if (Minecraft.getMinecraft().currentScreen instanceof GuiInventory &&
+			!NEUOverlay.searchBarHasFocus &&
+			Keyboard.isRepeatEvent()) {
+			event.setCanceled(true);
+			return;
+		}
+		if (typing) {
+			event.setCanceled(true);
+		}
+		if (NotEnoughUpdates.INSTANCE.config.hidden.dev && Keyboard.isKeyDown(Keyboard.KEY_B) &&
+			Minecraft.getMinecraft().currentScreen instanceof GuiChest
+		) {
+			GuiChest eventGui = (GuiChest) Minecraft.getMinecraft().currentScreen;
+			ContainerChest cc = (ContainerChest) eventGui.inventorySlots;
+			IInventory lower = cc.getLowerChestInventory();
+
+			ItemStack backArrow = lower.getStackInSlot(48);
+			List<String> tooltip = backArrow != null ? backArrow.getTooltip(Minecraft.getMinecraft().thePlayer, false) : null;
+			if (tooltip != null && tooltip.size() >= 2 && tooltip.get(1).endsWith("Essence")) {
 
 				try {
 					File file = new File(
@@ -1023,7 +1071,10 @@ public class RenderListener {
 						"config/notenoughupdates/repo/constants/essencecosts.json"
 					);
 					String fileContent;
-					fileContent = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))
+					fileContent = new BufferedReader(new InputStreamReader(
+						Files.newInputStream(file.toPath()),
+						StandardCharsets.UTF_8
+					))
 						.lines()
 						.collect(Collectors.joining(System.lineSeparator()));
 					String id = null;
@@ -1094,7 +1145,7 @@ public class RenderListener {
 					try {
 						try (
 							BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-								new FileOutputStream(file),
+								Files.newOutputStream(file.toPath()),
 								StandardCharsets.UTF_8
 							))
 						) {
@@ -1112,6 +1163,189 @@ public class RenderListener {
 						EnumChatFormatting.RED + "Error while parsing inventory. Try again or check logs for details."));
 				}
 			}
+		} else if (Keyboard.isKeyDown(Keyboard.KEY_RETURN) && NotEnoughUpdates.INSTANCE.config.hidden.dev) {
+			Minecraft mc = Minecraft.getMinecraft();
+
+			if (typing) {
+				typing = false;
+				cachedDefinitions.put(correctingItem, NEUOverlay.getTextField().getText());
+				NEUOverlay.getTextField().setText("");
+			}
+
+			if (Minecraft.getMinecraft().currentScreen instanceof GuiChest) {
+				GuiChest eventGui = (GuiChest) Minecraft.getMinecraft().currentScreen;
+				ContainerChest cc = (ContainerChest) eventGui.inventorySlots;
+				IInventory lower = cc.getLowerChestInventory();
+
+				try {
+					JsonObject newNPC = new JsonObject();
+					String displayname = lower.getDisplayName().getUnformattedText();
+					File file = new File(
+						Minecraft.getMinecraft().mcDataDir.getAbsolutePath(),
+						"config" + File.separator + "notenoughupdates" +
+							File.separator + "repo" + File.separator + "npc" + File.separator +
+							displayname.toUpperCase().replace(" ", "_") + ".json"
+					);
+					newNPC.add("itemid", new JsonPrimitive("minecraft:skull"));
+					newNPC.add("displayname", new JsonPrimitive("§9" + displayname + " (NPC)"));
+					newNPC.add("nbttag", new JsonPrimitive("TODO"));
+					newNPC.add("damage", new JsonPrimitive(3));
+
+					JsonArray newArray = new JsonArray();
+					newArray.add(new JsonPrimitive(""));
+					newNPC.add("lore", newArray);
+					newNPC.add("internalname", new JsonPrimitive(displayname.toUpperCase().replace(" ", "_") + "_NPC"));
+					newNPC.add("clickcommand", new JsonPrimitive("viewrecipe"));
+					newNPC.add("modver", new JsonPrimitive(NotEnoughUpdates.VERSION));
+					newNPC.add("infoType", new JsonPrimitive("WIKI_URL"));
+					JsonArray emptyInfoArray = new JsonArray();
+					emptyInfoArray.add(new JsonPrimitive("TODO"));
+					newNPC.add("info", emptyInfoArray);
+					newNPC.add("x", new JsonPrimitive((int) mc.thePlayer.posX));
+					newNPC.add("y", new JsonPrimitive((int) mc.thePlayer.posY + 2));
+					newNPC.add("z", new JsonPrimitive((int) mc.thePlayer.posZ));
+					newNPC.add("island", new JsonPrimitive(SBInfo.getInstance().getLocation()));
+
+					JsonArray recipesArray = new JsonArray();
+
+					TreeMap<String, JsonObject> itemInformation = NotEnoughUpdates.INSTANCE.manager.getItemInformation();
+					for (int i = 0; i < 45; i++) {
+						ItemStack stack = lower.getStackInSlot(i);
+						if (stack == null) continue;
+						if (stack.getDisplayName().isEmpty() || stack.getDisplayName().equals(" ")) continue;
+
+						String internalname = NotEnoughUpdates.INSTANCE.manager.getInternalnameFromNBT(stack.getTagCompound());
+						if (internalname == null) continue;
+						JsonObject currentRecipe = new JsonObject();
+						currentRecipe.add("type", new JsonPrimitive("npc_shop"));
+						JsonArray costArray = new JsonArray();
+						boolean inCost = false;
+						for (String s : NotEnoughUpdates.INSTANCE.manager.getLoreFromNBT(stack.getTagCompound())) {
+							if (s.equals("§7Cost")) {
+								inCost = true;
+								continue;
+							} else if (s.equals("§eClick to trade!")) {
+								inCost = false;
+							}
+							if (!inCost) continue;
+							String entry = StringUtils.stripControlCodes(s);
+							if (entry.isEmpty()) continue;
+							int coinIndex = entry.indexOf(" Coins");
+							if (coinIndex != -1) {
+								String amountString = entry.substring(0, coinIndex).replace(",", "");
+								costArray.add(new JsonPrimitive("SKYBLOCK_COIN:" + amountString));
+							} else {
+								if (cachedDefinitions == null) {
+									cachedDefinitions = new HashMap<>();
+								}
+
+								String item;
+								int amountIndex = entry.lastIndexOf(" x");
+								String amountString;
+								if (amountIndex == -1) {
+									amountString = "1";
+									item = entry.replace(" ", "_").toUpperCase();
+								} else {
+									amountString = entry.substring(amountIndex);
+									item = entry.substring(0, amountIndex).replace(" ", "_").toUpperCase();
+								}
+								amountString = amountString.replace(",", "").replace("x", "").trim();
+								if (itemInformation.containsKey(item)) {
+									costArray.add(new JsonPrimitive(item + ":" + amountString));
+								} else if (cachedDefinitions.containsKey(item)) {
+									costArray.add(new JsonPrimitive(cachedDefinitions.get(item) + ":" + amountString));
+								} else {
+									mc.thePlayer.addChatMessage(new ChatComponentText(
+										"Change the item ID of " + item + " to the correct one and press Enter."));
+									NEUOverlay.getTextField().setText(item);
+									event.setCanceled(true);
+									typing = true;
+									correctingItem = item;
+									if (cachedDefinitions == null) {
+										cachedDefinitions = new HashMap<>();
+									}
+									return;
+								}
+							}
+						}
+						currentRecipe.add("cost", costArray);
+						currentRecipe.add("result", new JsonPrimitive(internalname));
+						recipesArray.add(currentRecipe);
+						newNPC.add("recipes", recipesArray);
+					}
+					Gson gson = new GsonBuilder().setPrettyPrinting().create();
+					System.out.println(gson.toJson(newNPC));
+					try {
+						//noinspection ResultOfMethodCallIgnored
+						file.createNewFile();
+						try (
+							BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+								Files.newOutputStream(file.toPath()),
+								StandardCharsets.UTF_8
+							))
+						) {
+							writer.write(gson.toJson(newNPC));
+							Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+								EnumChatFormatting.AQUA + "Parsed and saved: " + EnumChatFormatting.WHITE + displayname));
+						}
+					} catch (IOException ignored) {
+						Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+							EnumChatFormatting.RED + "Error while writing file."));
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					mc.thePlayer.addChatMessage(new ChatComponentText(
+						EnumChatFormatting.RED + "Error while parsing inventory. Try again or check logs for details"));
+				}
+			}
+		} else if (NotEnoughUpdates.INSTANCE.config.hidden.dev && Keyboard.isKeyDown(Keyboard.KEY_B) &&
+			Minecraft.getMinecraft().currentScreen instanceof GuiChest &&
+			((((ContainerChest) ((GuiChest) Minecraft.getMinecraft().currentScreen).inventorySlots)
+				.getLowerChestInventory()
+				.getDisplayName()
+				.getUnformattedText()
+				.endsWith("Essence")))) {
+			GuiChest eventGui = (GuiChest) Minecraft.getMinecraft().currentScreen;
+			ContainerChest cc = (ContainerChest) eventGui.inventorySlots;
+			IInventory lower = cc.getLowerChestInventory();
+
+			for (int i = 9; i < 45; i++) {
+				ItemStack stack = lower.getStackInSlot(i);
+				if (stack == null) continue;
+				if (stack.getDisplayName().isEmpty() || stack.getDisplayName().equals(" ")) continue;
+				String internalName = NotEnoughUpdates.INSTANCE.manager.getInternalNameForItem(stack);
+				if (internalName == null) {
+					Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+						EnumChatFormatting.RED + "ERROR: Could not get internal name for: " + EnumChatFormatting.AQUA +
+							stack.getDisplayName()));
+					continue;
+				}
+				JsonObject itemObject = NotEnoughUpdates.INSTANCE.manager.getJsonForItem(stack);
+				JsonArray lore = itemObject.get("lore").getAsJsonArray();
+				List<String> loreList = new ArrayList<>();
+				for (int j = 0; j < lore.size(); j++) loreList.add(lore.get(j).getAsString());
+				if (loreList.get(loreList.size() - 1).equals("§7§eClick to view upgrades!")) {
+					loreList.remove(loreList.size() - 1);
+					loreList.remove(loreList.size() - 1);
+				}
+
+				JsonArray newLore = new JsonArray();
+				for (String s : loreList) {
+					newLore.add(new JsonPrimitive(s));
+				}
+				itemObject.remove("lore");
+				itemObject.add("lore", newLore);
+
+				if (!NEUItemEditor.saveOnly(internalName, itemObject)) {
+					Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+						EnumChatFormatting.RED + "ERROR: Failed to save item: " + EnumChatFormatting.AQUA +
+							stack.getDisplayName()));
+				}
+			}
+			Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+				EnumChatFormatting.AQUA + "Parsed page: " + lower.getDisplayName().getUnformattedText()));
+			event.setCanceled(true);
+			return;
 		}
 
 		if (AuctionBINWarning.getInstance().shouldShow()) {
@@ -1183,7 +1417,7 @@ public class RenderListener {
 				event.setCanceled(true);
 			}
 		}
-		if (NotEnoughUpdates.INSTANCE.config.hidden.dev && NotEnoughUpdates.INSTANCE.config.hidden.enableItemEditing &&
+		if (NotEnoughUpdates.INSTANCE.config.apiData.repositoryEditing &&
 			Minecraft.getMinecraft().theWorld != null && Keyboard.getEventKey() == Keyboard.KEY_N &&
 			Keyboard.getEventKeyState()) {
 			GuiScreen gui = Minecraft.getMinecraft().currentScreen;
@@ -1240,7 +1474,7 @@ public class RenderListener {
 				System.out.println(essenceJson);
 			}
 		}
-		if (NotEnoughUpdates.INSTANCE.config.hidden.dev && NotEnoughUpdates.INSTANCE.config.hidden.enableItemEditing &&
+		if (NotEnoughUpdates.INSTANCE.config.apiData.repositoryEditing &&
 			Minecraft.getMinecraft().theWorld != null && Keyboard.getEventKey() == Keyboard.KEY_O &&
 			Keyboard.getEventKeyState()) {
 			GuiScreen gui = Minecraft.getMinecraft().currentScreen;

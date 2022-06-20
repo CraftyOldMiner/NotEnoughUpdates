@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.commands.dungeon;
 
 import com.google.gson.JsonElement;
@@ -31,6 +50,12 @@ public class MapCommand extends ClientCommandBase {
 
 	@Override
 	public void processCommand(ICommandSender sender, String[] args) throws CommandException {
+		if (!NotEnoughUpdates.INSTANCE.config.hidden.dev) {
+			Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+				EnumChatFormatting.RED + "[NEU] The map does not work right now. You can use the map from other mods, for example: SkyblockAddons, DungeonsGuide, or Skytils "));
+			return;
+		}
+
 		if (NotEnoughUpdates.INSTANCE.colourMap == null) {
 			try (
 				BufferedReader reader = new BufferedReader(new InputStreamReader(Minecraft

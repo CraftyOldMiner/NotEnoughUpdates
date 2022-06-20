@@ -1,12 +1,34 @@
-import net.minecraftforge.gradle.user.ReobfMappingType
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import java.io.ByteArrayOutputStream
 
 plugins {
+		idea
 		java
-		id("net.minecraftforge.gradle.forge") version "6f5327738df"
-		id("com.github.johnrengelman.shadow") version "6.1.0"
-		id("org.spongepowered.mixin") version "d75e32e"
+		id("gg.essential.loom") version "0.10.0.+"
+		id("dev.architectury.architectury-pack200") version "0.1.3"
+		id("com.github.johnrengelman.shadow") version "7.1.2"
 }
+
+
+// Build metadata
 
 group = "io.github.moulberry"
 val baseVersion = "2.1"
@@ -14,11 +36,8 @@ val baseVersion = "2.1"
 
 val buildExtra = mutableListOf<String>()
 val buildVersion = properties["BUILD_VERSION"] as? String
-if (buildVersion != null)
-		buildExtra.add(buildVersion)
-val githubCi = properties["GITHUB_ACTIONS"] as? String
-if (githubCi == "true")
-		buildExtra.add("ci")
+if (buildVersion != null) buildExtra.add(buildVersion)
+if (properties["CI"] as? String == "true") buildExtra.add("ci")
 
 val stdout = ByteArrayOutputStream()
 val execResult = exec {
@@ -43,51 +62,57 @@ if (gitDiffStdout.toByteArray().isNotEmpty()) {
 version = baseVersion + (if (buildExtra.isEmpty()) "" else buildExtra.joinToString(prefix = "+", separator = "."))
 
 
-// Toolchains:
-
-java {
-		// Forge Gradle currently prevents using the toolchain: toolchain.languageVersion.set(JavaLanguageVersion.of(8))
-		sourceCompatibility = JavaVersion.VERSION_1_8
-		targetCompatibility = JavaVersion.VERSION_1_8
+// Minecraft configuration:
+loom {
+		launchConfigs {
+				"client" {
+						property("mixin.debug", "true")
+						property("asmhelper.verbose", "true")
+						arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
+						arg("--mixin", "mixins.notenoughupdates.json")
+				}
+		}
+		runConfigs {
+				"server" {
+						isIdeConfigGenerated = false
+				}
+		}
+		forge {
+				pack200Provider.set(dev.architectury.pack200.java.Pack200Adapter())
+				mixinConfig("mixins.notenoughupdates.json")
+		}
+		mixin {
+				defaultRefmapName.set("mixins.notenoughupdates.refmap.json")
+		}
 }
 
-minecraft {
-		version = "1.8.9-11.15.1.2318-1.8.9"
-		runDir = "run"
-		mappings = "stable_22"
-		clientJvmArgs.addAll(
-				listOf(
-						"-Dmixin.debug=true",
-						"-Dasmhelper.verbose=true"
-				)
-		)
-		clientRunArgs.addAll(
-				listOf(
-						"--tweakClass org.spongepowered.asm.launch.MixinTweaker",
-						"--mixin mixins.notenoughupdates.json"
-				)
-		)
-}
-
-mixin {
-		add(sourceSets.main.get(), "mixins.notenoughupdates.refmap.json")
-}
 
 // Dependencies:
-
 repositories {
-    mavenCentral()
-    maven("https://repo.spongepowered.org/maven/")
+		mavenCentral()
+		mavenLocal()
+		maven("https://repo.spongepowered.org/maven/")
+		maven("https://jitpack.io")
 }
 
 dependencies {
-    implementation("org.spongepowered:mixin:0.7.11-SNAPSHOT")
-    annotationProcessor("org.spongepowered:mixin:0.7.11-SNAPSHOT")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.13.1")
-    implementation("info.bliki.wiki:bliki-core:3.1.0")
+		minecraft("com.mojang:minecraft:1.8.9")
+		mappings("de.oceanlabs.mcp:mcp_stable:22-1.8.9")
+		forge("net.minecraftforge:forge:1.8.9-11.15.1.2318-1.8.9")
+
+		implementation("org.spongepowered:mixin:0.7.11-SNAPSHOT")
+		annotationProcessor("org.spongepowered:mixin:0.8.4-SNAPSHOT")
+		implementation("com.fasterxml.jackson.core:jackson-core:2.13.1")
+		implementation("info.bliki.wiki:bliki-core:3.1.0")
 		testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
+		//	modImplementation("io.github.notenoughupdates:MoulConfig:0.0.1")
 }
 
+
+
+java {
+		toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+}
 
 // Tasks:
 
@@ -96,7 +121,7 @@ tasks.withType(JavaCompile::class) {
 }
 
 tasks.named<Test>("test") {
-    useJUnitPlatform()
+		useJUnitPlatform()
 }
 
 tasks.withType(Jar::class) {
@@ -107,18 +132,22 @@ tasks.withType(Jar::class) {
 				this["MixinConfigs"] = "mixins.notenoughupdates.json"
 				this["FMLCorePluginContainsFMLMod"] = "true"
 				this["ForceLoadAsMod"] = "true"
-				this["FMLAT"] = "notenoughupdates_at.cfg"
 		}
 }
 
-tasks.shadowJar {
+val remapJar by tasks.named<net.fabricmc.loom.task.RemapJarTask>("remapJar") {
 		archiveClassifier.set("dep")
+		from(tasks.shadowJar)
+		input.set(tasks.shadowJar.get().archiveFile)
+}
+
+tasks.shadowJar {
+		archiveClassifier.set("dep-dev")
 		exclude(
-				"module-info.class",
-				"LICENSE.txt"
+				"module-info.class", "LICENSE.txt"
 		)
 		dependencies {
-				include(dependency("org.spongepowered:mixin:0.7.11-SNAPSHOT"))
+				include(dependency("org.spongepowered:mixin"))
 
 				include(dependency("commons-io:commons-io"))
 				include(dependency("org.apache.commons:commons-lang3"))
@@ -136,23 +165,14 @@ tasks.shadowJar {
 		relocate("org.slf4j")
 }
 
-tasks.build.get().dependsOn(tasks.shadowJar)
-
-reobf {
-		create("shadowJar") {
-				mappingType = ReobfMappingType.SEARGE
-		}
-}
+tasks.assemble.get().dependsOn(remapJar)
 
 tasks.processResources {
-		from(sourceSets.main.get().resources.srcDirs)
 		filesMatching("mcmod.info") {
 				expand(
-						"version" to project.version,
-						"mcversion" to minecraft.version
+						"version" to project.version, "mcversion" to "1.8.9"
 				)
 		}
-		rename("(.+_at.cfg)".toPattern(), "META-INF/$1")
 }
 
 sourceSets.main {

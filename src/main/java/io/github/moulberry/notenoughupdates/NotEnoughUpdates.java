@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates;
 
 import com.google.common.collect.Sets;
@@ -7,12 +26,14 @@ import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.commands.Commands;
 import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.cosmetics.CapeManager;
+import io.github.moulberry.notenoughupdates.cosmetics.ShaderManager;
 import io.github.moulberry.notenoughupdates.dungeons.DungeonMap;
 import io.github.moulberry.notenoughupdates.listener.ChatListener;
 import io.github.moulberry.notenoughupdates.listener.ItemTooltipListener;
 import io.github.moulberry.notenoughupdates.listener.NEUEventListener;
 import io.github.moulberry.notenoughupdates.listener.OldAnimationChecker;
 import io.github.moulberry.notenoughupdates.listener.RenderListener;
+import io.github.moulberry.notenoughupdates.miscfeatures.CookieWarning;
 import io.github.moulberry.notenoughupdates.miscfeatures.CrystalOverlay;
 import io.github.moulberry.notenoughupdates.miscfeatures.CrystalWishingCompassSolver;
 import io.github.moulberry.notenoughupdates.miscfeatures.CustomItemEffects;
@@ -25,6 +46,7 @@ import io.github.moulberry.notenoughupdates.miscfeatures.ItemCooldowns;
 import io.github.moulberry.notenoughupdates.miscfeatures.ItemCustomizeManager;
 import io.github.moulberry.notenoughupdates.miscfeatures.MiningStuff;
 import io.github.moulberry.notenoughupdates.miscfeatures.NPCRetexturing;
+import io.github.moulberry.notenoughupdates.miscfeatures.Navigation;
 import io.github.moulberry.notenoughupdates.miscfeatures.NullzeeSphere;
 import io.github.moulberry.notenoughupdates.miscfeatures.PetInfoOverlay;
 import io.github.moulberry.notenoughupdates.miscfeatures.SlotLocking;
@@ -41,6 +63,7 @@ import io.github.moulberry.notenoughupdates.overlays.FuelBar;
 import io.github.moulberry.notenoughupdates.overlays.OverlayManager;
 import io.github.moulberry.notenoughupdates.profileviewer.ProfileViewer;
 import io.github.moulberry.notenoughupdates.recipes.RecipeGenerator;
+import io.github.moulberry.notenoughupdates.util.Constants;
 import io.github.moulberry.notenoughupdates.util.SBInfo;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import io.github.moulberry.notenoughupdates.util.XPInformation;
@@ -138,6 +161,7 @@ public class NotEnoughUpdates {
 	public NEUManager manager;
 	public NEUOverlay overlay;
 	public NEUConfig config;
+	public Navigation navigation = new Navigation(this);
 	public GuiScreen openGui = null;
 	public long lastOpenedGui = 0;
 	public Commands commands;
@@ -203,6 +227,22 @@ public class NotEnoughUpdates {
 		if (config == null) {
 			config = new NEUConfig();
 			saveConfig();
+		} else {
+			if (config.apiKey != null && config.apiKey.apiKey != null) {
+				config.apiData.apiKey = config.apiKey.apiKey;
+				config.apiKey = null;
+			}
+
+			if (config.dungeonMap.dmEnable &&
+				!NotEnoughUpdates.INSTANCE.config.hidden.dev) {
+				config.dungeonMap.dmEnable = false;
+			}
+
+			//add the trophy fishing tab to the config
+			if (config.profileViewer.pageLayout.size() == 8) {
+				config.profileViewer.pageLayout.add(8);
+			}
+			saveConfig();
 		}
 
 		MinecraftForge.EVENT_BUS.register(this);
@@ -214,6 +254,7 @@ public class NotEnoughUpdates {
 		MinecraftForge.EVENT_BUS.register(new CalendarOverlay());
 		MinecraftForge.EVENT_BUS.register(SBInfo.getInstance());
 		MinecraftForge.EVENT_BUS.register(CustomItemEffects.INSTANCE);
+		MinecraftForge.EVENT_BUS.register(new Constants());
 		MinecraftForge.EVENT_BUS.register(new DungeonMap());
 		MinecraftForge.EVENT_BUS.register(new SunTzu());
 		MinecraftForge.EVENT_BUS.register(new MiningStuff());
@@ -236,11 +277,14 @@ public class NotEnoughUpdates {
 		MinecraftForge.EVENT_BUS.register(new ItemTooltipListener(this));
 		MinecraftForge.EVENT_BUS.register(new RenderListener(this));
 		MinecraftForge.EVENT_BUS.register(new OldAnimationChecker());
+		MinecraftForge.EVENT_BUS.register(new CookieWarning());
+		MinecraftForge.EVENT_BUS.register(navigation);
 
 		if (Minecraft.getMinecraft().getResourceManager() instanceof IReloadableResourceManager) {
 			IReloadableResourceManager manager = (IReloadableResourceManager) Minecraft.getMinecraft().getResourceManager();
 			manager.registerReloadListener(CustomSkulls.getInstance());
 			manager.registerReloadListener(NPCRetexturing.getInstance());
+			manager.registerReloadListener(ShaderManager.getInstance());
 			manager.registerReloadListener(new ItemCustomizeManager.ReloadListener());
 			manager.registerReloadListener(new CustomBlockSounds.ReloaderListener());
 		}
@@ -266,7 +310,6 @@ public class NotEnoughUpdates {
 				}
 				tmp.delete();
 			}
-			//saveConfig();
 		}));
 	}
 

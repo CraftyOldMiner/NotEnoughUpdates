@@ -1,7 +1,34 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.options.seperateSections;
 
 import com.google.gson.annotations.Expose;
-import io.github.moulberry.notenoughupdates.core.config.annotations.*;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigAccordionId;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorAccordion;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorBoolean;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorButton;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorDropdown;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorKeybind;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigEditorSlider;
+import io.github.moulberry.notenoughupdates.core.config.annotations.ConfigOption;
+import org.lwjgl.input.Keyboard;
 
 public class Misc {
 	@Expose
@@ -163,4 +190,29 @@ public class Misc {
 		"Fandom"
 	})
 	public int wiki = 0;
+
+	@Expose
+	@ConfigOption(
+		name = "Waypoint Keybind",
+		desc = "Press this keybind to show waypoints to various NPCs"
+	)
+	@ConfigEditorKeybind(defaultKey = Keyboard.KEY_N)
+	public int keybindWaypoint = Keyboard.KEY_N;
+
+	@Expose
+	@ConfigOption(
+		name = "Untrack close Waypoints",
+		desc = "Automatically untrack waypoints once you get close to them."
+	)
+	@ConfigEditorBoolean
+	public boolean untrackCloseWaypoints = true;
+
+	@Expose
+	@ConfigOption(
+		name = "Warp twice",
+		desc = "Warp twice when using SHIFT+N to /warp to a waypoint."
+	)
+	@ConfigEditorBoolean
+	public boolean warpTwice = true;
+
 }

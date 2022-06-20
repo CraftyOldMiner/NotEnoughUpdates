@@ -1,6 +1,26 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.miscfeatures;
 
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
+import io.github.moulberry.notenoughupdates.core.ChromaColour;
 import io.github.moulberry.notenoughupdates.util.SpecialColour;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.block.state.IBlockState;
@@ -76,42 +96,71 @@ public class FishingHelper {
 	private static final ResourceLocation FISHING_WARNING_EXCLAM = new ResourceLocation(
 		"notenoughupdates:fishing_warning_exclam.png");
 
+	public boolean renderWarning() {
+		if (warningState == PlayerWarningState.NOTHING) return false;
+
+		if (!NotEnoughUpdates.INSTANCE.config.fishing.incomingFishWarning &&
+			warningState == PlayerWarningState.FISH_INCOMING)
+			return false;
+		if (!NotEnoughUpdates.INSTANCE.config.fishing.incomingFishWarningR &&
+			warningState == PlayerWarningState.FISH_HOOKED)
+			return false;
+
+		float offset = warningState == PlayerWarningState.FISH_HOOKED ? 0.5f : 0f;
+
+		float centerOffset = 0.5f / 8f;
+		Minecraft.getMinecraft().getTextureManager().bindTexture(FISHING_WARNING_EXCLAM);
+		Utils.drawTexturedRect(
+			centerOffset - 4f / 8f,
+			-20 / 8f,
+			1f,
+			2f,
+			0 + offset,
+			0.5f + offset,
+			0,
+			1,
+			GL11.GL_NEAREST
+		);
+		return true;
+	}
+
 	public void onRenderBobber(EntityFishHook hook) {
-		if (Minecraft.getMinecraft().thePlayer.fishEntity == hook && warningState != PlayerWarningState.NOTHING) {
+		if (Minecraft.getMinecraft().thePlayer.fishEntity != hook) return;
+		GlStateManager.pushMatrix();
+		GlStateManager.disableCull();
+		GlStateManager.disableLighting();
+		GL11.glDepthFunc(GL11.GL_ALWAYS);
+		GlStateManager.scale(1, -1, 1);
+		boolean isExclamationMarkPresent = renderWarning();
+		GlStateManager.scale(0.1, 0.1, 1);
+		drawFishingTimer(hook, isExclamationMarkPresent);
+		GL11.glDepthFunc(GL11.GL_LEQUAL);
+		GlStateManager.enableLighting();
+		GlStateManager.enableCull();
+		GlStateManager.popMatrix();
+	}
 
-			if (!NotEnoughUpdates.INSTANCE.config.fishing.incomingFishWarning &&
-				warningState == PlayerWarningState.FISH_INCOMING)
-				return;
-			if (!NotEnoughUpdates.INSTANCE.config.fishing.incomingFishWarningR &&
-				warningState == PlayerWarningState.FISH_HOOKED)
-				return;
-
-			GlStateManager.disableCull();
-			GlStateManager.disableLighting();
-			GL11.glDepthFunc(GL11.GL_ALWAYS);
-			GlStateManager.scale(1, -1, 1);
-
-			float offset = warningState == PlayerWarningState.FISH_HOOKED ? 0.5f : 0f;
-
-			float centerOffset = 0.5f / 8f;
-			Minecraft.getMinecraft().getTextureManager().bindTexture(FISHING_WARNING_EXCLAM);
-			Utils.drawTexturedRect(
-				centerOffset - 4f / 8f,
-				-20 / 8f,
-				1f,
-				2f,
-				0 + offset,
-				0.5f + offset,
-				0,
-				1,
-				GL11.GL_NEAREST
-			);
-
-			GlStateManager.scale(1, -1, 1);
-			GL11.glDepthFunc(GL11.GL_LEQUAL);
-			GlStateManager.enableLighting();
-			GlStateManager.enableCull();
+	private void drawFishingTimer(EntityFishHook hook, boolean isExclamationMarkPresent) {
+		if (!NotEnoughUpdates.INSTANCE.config.fishing.fishingTimer) return;
+		float baseHeight = isExclamationMarkPresent ? 20 : 0;
+		int ticksExisted = hook.ticksExisted;
+		float seconds = ticksExisted / 20F;
+		int color;
+		if (seconds > 30) {
+			color = ChromaColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.fishing.fishingTimerColor30SecPlus);
+		} else {
+			color = ChromaColour.specialToChromaRGB(NotEnoughUpdates.INSTANCE.config.fishing.fishingTimerColor);
 		}
+
+		Utils.drawStringCentered(
+			String.format("%.02fs", seconds),
+			Minecraft.getMinecraft().fontRendererObj,
+			0,
+			-baseHeight - Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT,
+			false,
+			color
+		);
+
 	}
 
 	public void addEntity(int entityId, Entity entity) {

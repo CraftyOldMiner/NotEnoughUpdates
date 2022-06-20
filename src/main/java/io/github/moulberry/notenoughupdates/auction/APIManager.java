@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.auction;
 
 import com.google.gson.JsonArray;
@@ -27,7 +46,16 @@ import net.minecraft.util.ResourceLocation;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Base64;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -183,8 +211,8 @@ public class APIManager {
 		customAH.tick();
 		long currentTime = System.currentTimeMillis();
 		if (NotEnoughUpdates.INSTANCE.config.neuAuctionHouse.enableNeuAuctionHouse &&
-			NotEnoughUpdates.INSTANCE.config.apiKey.apiKey != null &&
-			!NotEnoughUpdates.INSTANCE.config.apiKey.apiKey.isEmpty()) {
+			NotEnoughUpdates.INSTANCE.config.apiData.apiKey != null &&
+			!NotEnoughUpdates.INSTANCE.config.apiData.apiKey.isEmpty()) {
 			if (currentTime - lastAuctionUpdate > 60 * 1000) {
 				lastAuctionUpdate = currentTime;
 				updatePageTick();
@@ -214,7 +242,7 @@ public class APIManager {
 			lastBazaarUpdate = currentTime - BAZAAR_UPDATE_INTERVAL + 60 * 1000; // Try again in 1 minute on failure
 			updateBazaar();
 		}
-		if (currentTime - lastLowestBinUpdate >  LOWEST_BIN_UPDATE_INTERVAL) {
+		if (currentTime - lastLowestBinUpdate > LOWEST_BIN_UPDATE_INTERVAL) {
 			lastLowestBinUpdate = currentTime - LOWEST_BIN_UPDATE_INTERVAL + 30 * 1000;  // Try again in 30 seconds on failure
 			updateLowestBin();
 		}
@@ -675,7 +703,7 @@ public class APIManager {
 
 	public void updateBazaar() {
 		manager.hypixelApi.getHypixelApiAsync(
-			NotEnoughUpdates.INSTANCE.config.apiKey.apiKey,
+			NotEnoughUpdates.INSTANCE.config.apiData.apiKey,
 			"skyblock/bazaar",
 			new HashMap<>(),
 			(jsonObject) -> {

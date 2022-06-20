@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.listener;
 
 import com.google.gson.JsonObject;
@@ -6,19 +25,24 @@ import io.github.moulberry.notenoughupdates.core.BackgroundBlur;
 import io.github.moulberry.notenoughupdates.cosmetics.CapeManager;
 import io.github.moulberry.notenoughupdates.dungeons.DungeonBlocks;
 import io.github.moulberry.notenoughupdates.dungeons.DungeonWin;
-import io.github.moulberry.notenoughupdates.miscfeatures.*;
+import io.github.moulberry.notenoughupdates.miscfeatures.CrystalMetalDetectorSolver;
+import io.github.moulberry.notenoughupdates.miscfeatures.CrystalOverlay;
+import io.github.moulberry.notenoughupdates.miscfeatures.FairySouls;
+import io.github.moulberry.notenoughupdates.miscfeatures.ItemCustomizeManager;
+import io.github.moulberry.notenoughupdates.miscfeatures.NPCRetexturing;
 import io.github.moulberry.notenoughupdates.miscgui.AccessoryBagOverlay;
 import io.github.moulberry.notenoughupdates.miscgui.GuiCustomEnchant;
 import io.github.moulberry.notenoughupdates.miscgui.StorageOverlay;
 import io.github.moulberry.notenoughupdates.overlays.OverlayManager;
 import io.github.moulberry.notenoughupdates.overlays.TextOverlay;
-import io.github.moulberry.notenoughupdates.util.*;
+import io.github.moulberry.notenoughupdates.util.Constants;
+import io.github.moulberry.notenoughupdates.util.ProfileApiSyncer;
+import io.github.moulberry.notenoughupdates.util.SBInfo;
+import io.github.moulberry.notenoughupdates.util.Utils;
+import io.github.moulberry.notenoughupdates.util.XPInformation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiChat;
-import net.minecraft.client.gui.GuiScreenBook;
 import net.minecraft.client.gui.inventory.GuiChest;
-import net.minecraft.client.gui.inventory.GuiEditSign;
 import net.minecraft.event.ClickEvent;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ContainerChest;
@@ -153,10 +177,6 @@ public class NEUEventListener {
 		if (event.phase != TickEvent.Phase.START) return;
 		if (Minecraft.getMinecraft().theWorld == null) return;
 		if (Minecraft.getMinecraft().thePlayer == null) return;
-		Keyboard.enableRepeatEvents(Minecraft.getMinecraft().currentScreen != null &&
-			(Minecraft.getMinecraft().currentScreen instanceof GuiChat ||
-				Minecraft.getMinecraft().currentScreen instanceof GuiEditSign ||
-				Minecraft.getMinecraft().currentScreen instanceof GuiScreenBook));
 
 		if ((Keyboard.isKeyDown(Keyboard.KEY_NUMPAD1) && Keyboard.isKeyDown(Keyboard.KEY_NUMPAD4) && Keyboard.isKeyDown(
 			Keyboard.KEY_NUMPAD9))) {

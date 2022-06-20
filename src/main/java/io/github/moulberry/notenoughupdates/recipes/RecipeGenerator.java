@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.recipes;
 
 import com.google.gson.JsonArray;
@@ -21,7 +40,12 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -43,7 +67,7 @@ public class RecipeGenerator {
 
 	@SubscribeEvent
 	public void onTick(TickEvent event) {
-		if (!neu.config.hidden.enableItemEditing) return;
+		if (!neu.config.apiData.repositoryEditing) return;
 		GuiScreen currentScreen = Minecraft.getMinecraft().currentScreen;
 		if (currentScreen == null) return;
 		if (!(currentScreen instanceof GuiChest)) return;
@@ -231,6 +255,7 @@ public class RecipeGenerator {
 	Damage: 3s
 }*/
 	public boolean saveRecipes(String relevantItem, List<NeuRecipe> recipes) throws IOException {
+		relevantItem = relevantItem.replace(" ", "_");
 		JsonObject outputJson = neu.manager.readJsonDefaultDir(relevantItem + ".json");
 		if (outputJson == null) return false;
 		outputJson.addProperty("clickcommand", "viewrecipe");

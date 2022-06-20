@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.profileviewer;
 
 import com.google.common.base.Splitter;
@@ -7,10 +26,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.mojang.authlib.GameProfile;
-import io.github.moulberry.notenoughupdates.NEUOverlay;
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
 import io.github.moulberry.notenoughupdates.cosmetics.ShaderManager;
 import io.github.moulberry.notenoughupdates.itemeditor.GuiElementTextField;
+import io.github.moulberry.notenoughupdates.profileviewer.trophy.TrophyFishingPage;
 import io.github.moulberry.notenoughupdates.util.Constants;
 import io.github.moulberry.notenoughupdates.util.SBInfo;
 import io.github.moulberry.notenoughupdates.util.Utils;
@@ -181,7 +200,7 @@ public class GuiProfileViewer extends GuiScreen {
 			"personal_vault_contents",
 			Utils.editItemStackInfo(NotEnoughUpdates.INSTANCE.manager.jsonToStack(NotEnoughUpdates.INSTANCE.manager
 				.getItemInformation()
-				.get("IRON_CHEST")), EnumChatFormatting.GRAY + "Personal vault", true)
+				.get("IRON_CHEST")), EnumChatFormatting.GRAY + "Personal Vault", true)
 		);
 		put("talisman_bag", Utils.createItemStack(Items.golden_apple, EnumChatFormatting.GRAY + "Accessory Bag"));
 		put("wardrobe_contents", Utils.createItemStack(Items.leather_chestplate, EnumChatFormatting.GRAY + "Wardrobe"));
@@ -205,7 +224,7 @@ public class GuiProfileViewer extends GuiScreen {
 	private static int floorTime = 7;
 	private static int guiLeft;
 	private static int guiTop;
-	private static ProfileViewer.Profile profile = null;
+	private static ProfileViewer.Profile profile;
 	private final GuiElementTextField playerNameTextField;
 	private final HashMap<String, ProfileViewer.Level> levelObjCatas = new HashMap<>();
 	private final HashMap<String, ProfileViewer.Level> levelObjhotms = new HashMap<>();
@@ -233,7 +252,7 @@ public class GuiProfileViewer extends GuiScreen {
 	private long lastTime = 0;
 	private long startTime = 0;
 	private List<String> tooltipToDisplay = null;
-	private String profileId = null;
+	private static String profileId = null;
 	private boolean profileDropdownSelected = false;
 	private ItemStack selectedCollectionCategory = null;
 	private int floorLevelTo = -1;
@@ -246,6 +265,7 @@ public class GuiProfileViewer extends GuiScreen {
 	private ItemStack[] bestWeapons = null;
 	private ItemStack[] bestRods = null;
 	private ItemStack[] armorItems = null;
+	private ItemStack[] equipmentItems = null;
 	private HashMap<String, ItemStack[][][]> inventoryItems = new HashMap<>();
 	private String selectedInventory = "inv_contents";
 	private int currentInventoryIndex = 0;
@@ -264,9 +284,10 @@ public class GuiProfileViewer extends GuiScreen {
 	private boolean showBingoPage;
 
 	public GuiProfileViewer(ProfileViewer.Profile profile) {
-		this.profile = profile;
+		GuiProfileViewer.profile = profile;
+		GuiProfileViewer.profileId = profile.getLatestProfile();
 		String name = "";
-		if (profile != null && profile.getHypixelProfile() != null) {
+		if (profile.getHypixelProfile() != null) {
 			name = profile.getHypixelProfile().get("displayname").getAsString();
 		}
 		playerNameTextField = new GuiElementTextField(
@@ -446,6 +467,10 @@ public class GuiProfileViewer extends GuiScreen {
 
 	public static ProfileViewer.Profile getProfile() {
 		return profile;
+	}
+
+	public static String getProfileId() {
+		return profileId;
 	}
 
 	@Override
@@ -689,6 +714,9 @@ public class GuiProfileViewer extends GuiScreen {
 				break;
 			case BINGO:
 				BingoPage.renderPage(mouseX, mouseY);
+				break;
+			case TROPHY_FISH:
+				TrophyFishingPage.renderPage(mouseX, mouseY);
 				break;
 			case LOADING:
 				String str = EnumChatFormatting.YELLOW + "Loading player profiles.";
@@ -1931,18 +1959,22 @@ public class GuiProfileViewer extends GuiScreen {
 		if (levelObj.maxed) {
 			renderGoldBar(x, y + 6, xSize);
 		} else {
-			renderBar(x, y + 6, xSize, level % 1);
+			if (skillName.contains("Catacombs") && levelObj.level >= 50) {
+				renderGoldBar(x, y + 6, xSize);
+			} else {
+				renderBar(x, y + 6, xSize, level % 1);
+			}
 		}
 
 		if (mouseX > x && mouseX < x + 120) {
 			if (mouseY > y - 4 && mouseY < y + 13) {
 				String levelStr;
 				String totalXpStr = null;
+				if (skillName.contains("Catacombs"))
+					totalXpStr = EnumChatFormatting.GRAY + "Total XP: " + EnumChatFormatting.DARK_PURPLE +
+						Utils.formatNumberWithDots((long) levelObj.totalXp);
 				if (levelObj.maxed) {
 					levelStr = EnumChatFormatting.GOLD + "MAXED!";
-					if (skillName.contains("Catacombs"))
-						totalXpStr = EnumChatFormatting.GRAY + "Total XP: " + EnumChatFormatting.DARK_PURPLE +
-							Utils.formatNumberWithDots((long) levelObj.totalXp);
 				} else {
 					int maxXp = (int) levelObj.maxXpForLevel;
 					levelStr = EnumChatFormatting.DARK_PURPLE + shortNumberFormat(
@@ -2905,6 +2937,32 @@ public class GuiProfileViewer extends GuiScreen {
 			}
 		}
 
+		if (equipmentItems == null) {
+			equipmentItems = new ItemStack[4];
+			JsonArray equippment = Utils.getElement(inventoryInfo, "equippment_contents").getAsJsonArray();
+			for (int i = 0; i < equippment.size(); i++) {
+				if (equippment.get(i) == null || !equippment.get(i).isJsonObject()) continue;
+				equipmentItems[i] = NotEnoughUpdates.INSTANCE.manager.jsonToStack(equippment.get(i).getAsJsonObject(), false);
+			}
+		}
+
+		for (int i = 0; i < equipmentItems.length; i++) {
+			ItemStack stack = equipmentItems[i];
+			if (stack != null) {
+				Utils.drawItemStack(stack, guiLeft + 192, guiTop + 13 + 18 * i);
+				if (stack != fillerStack) {
+					if (mouseX >= guiLeft + 192 - 1 && mouseX <= guiLeft + 192 + 16 + 1) {
+						if (mouseY >= guiTop + 13 + 18 * i - 1 && mouseY <= guiTop + 13 + 18 * i + 16 + 1) {
+							tooltipToDisplay = stack.getTooltip(
+								Minecraft.getMinecraft().thePlayer,
+								Minecraft.getMinecraft().gameSettings.advancedItemTooltips
+							);
+						}
+					}
+				}
+			}
+		}
+
 		ItemStack[][][] inventories = getItemsForInventory(inventoryInfo, selectedInventory);
 		if (currentInventoryIndex >= inventories.length) currentInventoryIndex = inventories.length - 1;
 		if (currentInventoryIndex < 0) currentInventoryIndex = 0;
@@ -3206,6 +3264,7 @@ public class GuiProfileViewer extends GuiScreen {
 					if (entry.getKey().contains("runecrafting")) continue;
 					if (entry.getKey().contains("carpentry")) continue;
 					if (entry.getKey().contains("catacombs")) continue;
+					if (entry.getKey().contains("social")) continue;
 
 					totalSkillLVL += entry.getValue().getAsFloat();
 					totalTrueSkillLVL += Math.floor(entry.getValue().getAsFloat());
@@ -3420,6 +3479,8 @@ public class GuiProfileViewer extends GuiScreen {
 			Utils.getElementAsFloat(Utils.getElement(profileInfo, "stats.items_fished_treasure"), 0);
 		float items_fished_large_treasure =
 			Utils.getElementAsFloat(Utils.getElement(profileInfo, "stats.items_fished_large_treasure"), 0);
+		float items_fished_trophy_fish =
+			Utils.getElementAsFloat(Utils.getElement(profileInfo, "stats.items_fished_trophy_fish"), 0);
 
 		Utils.renderAlignedString(
 			EnumChatFormatting.GREEN + "Ores Mined",
@@ -3455,6 +3516,13 @@ public class GuiProfileViewer extends GuiScreen {
 			EnumChatFormatting.WHITE.toString() + (int) items_fished_large_treasure,
 			guiLeft + xStart + xOffset * 2,
 			guiTop + yStartTop + yOffset * 5,
+			76
+		);
+		Utils.renderAlignedString(
+			EnumChatFormatting.GREEN + "Trophy Fish Fished",
+			EnumChatFormatting.WHITE.toString() + (int) items_fished_trophy_fish,
+			guiLeft + xStart + xOffset * 2,
+			guiTop + yStartTop + yOffset * 6,
 			76
 		);
 
@@ -4835,12 +4903,7 @@ public class GuiProfileViewer extends GuiScreen {
 			if (profile.getUuid().equals("20934ef9488c465180a78f861586b4cf")) {
 				locationStr = "Ignoring DMs";
 			} else {
-				if (location != null) {
-					JsonObject misc = Constants.MISC;
-					if (misc != null) {
-						locationStr = Utils.getElementAsString(Utils.getElement(misc, "area_names." + location), "Unknown");
-					}
-				}
+				locationStr = NotEnoughUpdates.INSTANCE.navigation.getNameForAreaModeOrUnknown(location);
 			}
 			if (locationStr != null) {
 				statusStr += EnumChatFormatting.GRAY + " - " + EnumChatFormatting.GREEN + locationStr;
@@ -5201,6 +5264,7 @@ public class GuiProfileViewer extends GuiScreen {
 		bestWeapons = null;
 		bestRods = null;
 		armorItems = null;
+		equipmentItems = null;
 		inventoryItems = new HashMap<>();
 		currentInventoryIndex = 0;
 		arrowCount = -1;
@@ -5328,7 +5392,8 @@ public class GuiProfileViewer extends GuiScreen {
 		COLLECTIONS(4, Items.painting, "Collections"),
 		PETS(5, Items.bone, "Pets"),
 		MINING(6, Items.iron_pickaxe, "Heart of the Mountain"),
-		BINGO(7, Items.filled_map, "Bingo");
+		BINGO(7, Items.filled_map, "Bingo"),
+		TROPHY_FISH(8, Items.fishing_rod, "Trophy Fish");
 
 		public final ItemStack stack;
 		public final int id;

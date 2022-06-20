@@ -1,4 +1,23 @@
-	package io.github.moulberry.notenoughupdates.commands.dev;
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.moulberry.notenoughupdates.commands.dev;
 
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
 import io.github.moulberry.notenoughupdates.commands.ClientCommandBase;
@@ -10,6 +29,7 @@ import io.github.moulberry.notenoughupdates.miscfeatures.customblockzones.Specia
 import io.github.moulberry.notenoughupdates.miscgui.GuiPriceGraph;
 import io.github.moulberry.notenoughupdates.util.SBInfo;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.BlockPos;
@@ -24,7 +44,18 @@ import java.util.List;
 public class DevTestCommand extends ClientCommandBase {
 
 	private static final List<String> DEV_TESTERS =
-		Arrays.asList("moulberry", "lucycoconut", "ironm00n", "ariyio", "throwpo", "lrg89", "dediamondpro", "lulonaut", "craftyoldminer");
+		Arrays.asList(
+			"moulberry",
+			"lucycoconut",
+			"ironm00n",
+			"ariyio",
+			"throwpo",
+			"lrg89",
+			"dediamondpro",
+			"lulonaut",
+			"craftyoldminer",
+			"eisengolem"
+		);
 
 	private static final String[] DEV_FAIL_STRINGS = {
 		"No.",
@@ -131,6 +162,16 @@ public class DevTestCommand extends ClientCommandBase {
 			Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.AQUA +
 				"I would never search"));
 			return;
+		}
+		if (args.length == 2 && args[0].equalsIgnoreCase("openGui")) {
+			try {
+				NotEnoughUpdates.INSTANCE.openGui = (GuiScreen) Class.forName(args[1]).newInstance();
+				Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+					"Opening gui: " + NotEnoughUpdates.INSTANCE.openGui));
+			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException e) {
+				e.printStackTrace();
+				Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("Failed to open this gui."));
+			}
 		}
 		if (args.length == 1 && args[0].equalsIgnoreCase("center")) {
 			double x = Math.floor(Minecraft.getMinecraft().thePlayer.posX) + 0.5f;

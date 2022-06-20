@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.profileviewer;
 
 import com.google.gson.JsonArray;
@@ -99,6 +118,7 @@ public class BingoPage {
 			int y = row == 0 ? initialY + yAdjustment : initialY + (24 * row) + yAdjustment;
 
 			Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(itemStack, x, y);
+			y = communityGoal ? y - 1 : y;
 			if (mouseX >= x && mouseX < x + 24) {
 				if (mouseY >= y && mouseY <= y + 24) {
 					Utils.drawHoveringText(
@@ -211,23 +231,6 @@ public class BingoPage {
 			tooltip.add(progressBar + EnumChatFormatting.YELLOW + " " + progressString + EnumChatFormatting.GOLD + "/" +
 				EnumChatFormatting.YELLOW + nextTierString);
 			tooltip.add("");
-			tooltip.add(EnumChatFormatting.GRAY + "Contribution Rewards");
-			tooltip.add(
-				"Top " + EnumChatFormatting.YELLOW + "1%" + EnumChatFormatting.DARK_GRAY + " - " + EnumChatFormatting.GOLD +
-					"15 Bingo Points");
-			tooltip.add(
-				"Top " + EnumChatFormatting.YELLOW + "5%" + EnumChatFormatting.DARK_GRAY + " - " + EnumChatFormatting.GOLD +
-					"12 Bingo Points");
-			tooltip.add(
-				"Top " + EnumChatFormatting.YELLOW + "10%" + EnumChatFormatting.DARK_GRAY + " - " + EnumChatFormatting.GOLD +
-					"9 Bingo Points");
-			tooltip.add(
-				"Top " + EnumChatFormatting.YELLOW + "25%" + EnumChatFormatting.DARK_GRAY + " - " + EnumChatFormatting.GOLD +
-					"7 Bingo Points");
-			tooltip.add(
-				"All Contributors" + EnumChatFormatting.DARK_GRAY + " - " + EnumChatFormatting.GOLD + "4 Bingo Points");
-
-			tooltip.add("");
 			tooltip.add(EnumChatFormatting.DARK_GRAY.toString() + EnumChatFormatting.ITALIC + "Community Goals are");
 			tooltip.add(
 				EnumChatFormatting.DARK_GRAY.toString() + EnumChatFormatting.ITALIC + "collaborative - anyone with a");
@@ -296,7 +299,7 @@ public class BingoPage {
 
 		HashMap<String, String> args = new HashMap<>();
 		NotEnoughUpdates.INSTANCE.manager.hypixelApi.getHypixelApiAsync(
-			NotEnoughUpdates.INSTANCE.config.apiKey.apiKey,
+			NotEnoughUpdates.INSTANCE.config.apiData.apiKey,
 			"resources/skyblock/bingo",
 			args,
 			jsonObject -> {

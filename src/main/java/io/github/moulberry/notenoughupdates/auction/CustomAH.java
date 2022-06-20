@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.auction;
 
 import com.google.gson.JsonObject;
@@ -35,14 +54,23 @@ import org.lwjgl.opengl.GL14;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.*;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.github.moulberry.notenoughupdates.util.GuiTextures.*;
+import static io.github.moulberry.notenoughupdates.util.GuiTextures.auction_accept;
+import static io.github.moulberry.notenoughupdates.util.GuiTextures.auction_price;
+import static io.github.moulberry.notenoughupdates.util.GuiTextures.auction_view;
+import static io.github.moulberry.notenoughupdates.util.GuiTextures.auction_view_buttons;
 
 public class CustomAH extends Gui {
 	private enum PriceFilter {
@@ -1589,7 +1617,6 @@ public class CustomAH extends Gui {
 			return false;
 		}
 
-		Keyboard.enableRepeatEvents(true);
 		if (isEditingPrice() && Keyboard.getEventKey() == Keyboard.KEY_RETURN) {
 			Minecraft.getMinecraft().displayGuiScreen(null);
 		} else if (Keyboard.getEventKey() == Keyboard.KEY_ESCAPE) {

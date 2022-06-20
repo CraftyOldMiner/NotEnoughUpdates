@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.profileviewer;
 
 import com.google.gson.JsonArray;
@@ -65,6 +84,7 @@ public class ProfileViewer {
 				"skill_runecrafting",
 				Utils.createItemStack(Items.magma_cream, EnumChatFormatting.DARK_PURPLE + "Runecrafting")
 			);
+			put("skill_social2", Utils.createItemStack(Items.emerald, EnumChatFormatting.DARK_GREEN + "Social"));
 			// put("skill_catacombs", Utils.createItemStack(Item.getItemFromBlock(Blocks.deadbush), EnumChatFormatting.GOLD+"Catacombs"));
 			put("slayer_zombie", Utils.createItemStack(Items.rotten_flesh, EnumChatFormatting.GOLD + "Rev Slayer"));
 			put("slayer_spider", Utils.createItemStack(Items.spider_eye, EnumChatFormatting.GOLD + "Tara Slayer"));
@@ -239,10 +259,13 @@ public class ProfileViewer {
 			);
 			put("INK_SACK", Utils.createItemStack(Items.dye, EnumChatFormatting.AQUA + "Ink Sack"));
 			put("SPONGE", Utils.createItemStack(Item.getItemFromBlock(Blocks.sponge), EnumChatFormatting.AQUA + "Sponge"));
-			put("MAGMA_FISH",
-				Utils.createSkull(EnumChatFormatting.AQUA + "Magmafish",
-				"5c53195c-5b98-3476-9731-c32647b22723",
-				"ewogICJ0aW1lc3RhbXAiIDogMTY0MjQ4ODA3MDY2NiwKICAicHJvZmlsZUlkIiA6ICIzNDkxZjJiOTdjMDE0MWE2OTM2YjFjMjJhMmEwMGZiNyIsCiAgInByb2ZpbGVOYW1lIiA6ICJKZXNzc3N1aGgiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjU2YjU5NTViMjk1NTIyYzk2ODk0ODE5NjBjMDFhOTkyY2ExYzc3NTRjZjRlZTMxM2M4ZGQwYzM1NmQzMzVmIgogICAgfQogIH0KfQ")
+			put(
+				"MAGMA_FISH",
+				Utils.createSkull(
+					EnumChatFormatting.AQUA + "Magmafish",
+					"5c53195c-5b98-3476-9731-c32647b22723",
+					"ewogICJ0aW1lc3RhbXAiIDogMTY0MjQ4ODA3MDY2NiwKICAicHJvZmlsZUlkIiA6ICIzNDkxZjJiOTdjMDE0MWE2OTM2YjFjMjJhMmEwMGZiNyIsCiAgInByb2ZpbGVOYW1lIiA6ICJKZXNzc3N1aGgiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjU2YjU5NTViMjk1NTIyYzk2ODk0ODE5NjBjMDFhOTkyY2ExYzc3NTRjZjRlZTMxM2M4ZGQwYzM1NmQzMzVmIgogICAgfQogIH0KfQ"
+				)
 			);
 		}};
 	private static final AtomicBoolean updatingResourceCollection = new AtomicBoolean(false);
@@ -312,7 +335,7 @@ public class ProfileViewer {
 
 		HashMap<String, String> args = new HashMap<>();
 		NotEnoughUpdates.INSTANCE.manager.hypixelApi.getHypixelApiAsync(
-			NotEnoughUpdates.INSTANCE.config.apiKey.apiKey,
+			NotEnoughUpdates.INSTANCE.config.apiData.apiKey,
 			"resources/skyblock/collections",
 			args,
 			jsonObject -> {
@@ -331,7 +354,7 @@ public class ProfileViewer {
 		String nameF = name.toLowerCase();
 		HashMap<String, String> args = new HashMap<>();
 		args.put("name", "" + nameF);
-		manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiKey.apiKey, "player",
+		manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiData.apiKey, "player",
 			args, jsonObject -> {
 				if (jsonObject != null && jsonObject.has("success") && jsonObject.get("success").getAsBoolean()
 					&& jsonObject.get("player").isJsonObject()) {
@@ -474,7 +497,7 @@ public class ProfileViewer {
 
 			HashMap<String, String> args = new HashMap<>();
 			args.put("uuid", "" + uuid);
-			manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiKey.apiKey, "status",
+			manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiData.apiKey, "status",
 				args, jsonObject -> {
 					if (jsonObject == null) return;
 
@@ -500,7 +523,7 @@ public class ProfileViewer {
 			HashMap<String, String> args = new HashMap<>();
 			args.put("uuid", "" + uuid);
 			NotEnoughUpdates.INSTANCE.manager.hypixelApi.getHypixelApiAsync(
-				NotEnoughUpdates.INSTANCE.config.apiKey.apiKey,
+				NotEnoughUpdates.INSTANCE.config.apiData.apiKey,
 				"skyblock/bingo",
 				args,
 				jsonObject -> {
@@ -657,7 +680,7 @@ public class ProfileViewer {
 
 			HashMap<String, String> args = new HashMap<>();
 			args.put("uuid", "" + uuid);
-			manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiKey.apiKey, "skyblock/profiles",
+			manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiData.apiKey, "skyblock/profiles",
 				args, jsonObject -> {
 					updatingPlayerInfoState.set(false);
 
@@ -720,7 +743,7 @@ public class ProfileViewer {
 
 			HashMap<String, String> args = new HashMap<>();
 			args.put("player", "" + uuid);
-			manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiKey.apiKey, "guild",
+			manager.hypixelApi.getHypixelApiAsync(NotEnoughUpdates.INSTANCE.config.apiData.apiKey, "guild",
 				args, jsonObject -> {
 					updatingGuildInfoState.set(false);
 
@@ -861,6 +884,8 @@ public class ProfileViewer {
 				Utils.getElementAsFloat(Utils.getElement(profileInfo, "experience_skill_alchemy"), 0);
 			float experience_skill_runecrafting =
 				Utils.getElementAsFloat(Utils.getElement(profileInfo, "experience_skill_runecrafting"), 0);
+			float experience_skill_social =
+				Utils.getElementAsFloat(Utils.getElement(profileInfo, "experience_skill_social2"), 0);
 			float experience_skill_hotm = Utils.getElementAsFloat(Utils.getElement(profileInfo, "mining_core.experience"), 0);
 
 			float experience_skill_catacombs =
@@ -879,7 +904,7 @@ public class ProfileViewer {
 			float totalSkillXP = experience_skill_taming + experience_skill_mining + experience_skill_foraging
 				+ experience_skill_enchanting + experience_skill_carpentry + experience_skill_farming
 				+ experience_skill_combat + experience_skill_fishing + experience_skill_alchemy
-				+ experience_skill_runecrafting;
+				+ experience_skill_runecrafting + experience_skill_social;
 
 			if (totalSkillXP <= 0) {
 				return null;
@@ -897,6 +922,7 @@ public class ProfileViewer {
 			skillInfo.addProperty("experience_skill_fishing", experience_skill_fishing);
 			skillInfo.addProperty("experience_skill_alchemy", experience_skill_alchemy);
 			skillInfo.addProperty("experience_skill_runecrafting", experience_skill_runecrafting);
+			skillInfo.addProperty("experience_skill_social2", experience_skill_social);
 			skillInfo.addProperty("experience_skill_hotm", experience_skill_hotm);
 
 			skillInfo.addProperty("experience_skill_catacombs", experience_skill_catacombs);
@@ -925,6 +951,9 @@ public class ProfileViewer {
 			Level level_skill_hotm = getLevel(levelingArray, experience_skill_hotm, getCap(leveling, "HOTM"), false);
 			Level level_skill_runecrafting = getLevel(Utils.getElement(leveling, "runecrafting_xp").getAsJsonArray(),
 				experience_skill_runecrafting, getCap(leveling, "runecrafting"), false
+			);
+			Level level_skill_social = getLevel(Utils.getElement(leveling, "social").getAsJsonArray(),
+				experience_skill_social, getCap(leveling, "social"), false
 			);
 			Level level_skill_catacombs = getLevel(Utils.getElement(leveling, "catacombs").getAsJsonArray(),
 				experience_skill_catacombs, getCap(leveling, "catacombs"), false
@@ -956,6 +985,7 @@ public class ProfileViewer {
 			skillInfo.addProperty("level_skill_fishing", level_skill_fishing.level);
 			skillInfo.addProperty("level_skill_alchemy", level_skill_alchemy.level);
 			skillInfo.addProperty("level_skill_runecrafting", level_skill_runecrafting.level);
+			skillInfo.addProperty("level_skill_social2", level_skill_social.level);
 
 			skillInfo.addProperty("level_skill_catacombs", level_skill_catacombs.level);
 
@@ -975,6 +1005,7 @@ public class ProfileViewer {
 			skillInfo.addProperty("maxed_skill_fishing", level_skill_fishing.maxed);
 			skillInfo.addProperty("maxed_skill_alchemy", level_skill_alchemy.maxed);
 			skillInfo.addProperty("maxed_skill_runecrafting", level_skill_runecrafting.maxed);
+			skillInfo.addProperty("maxed_skill_social2", level_skill_social.maxed);
 
 			skillInfo.addProperty("maxed_skill_catacombs", level_skill_catacombs.maxed);
 
@@ -994,6 +1025,7 @@ public class ProfileViewer {
 			skillInfo.addProperty("maxxp_skill_fishing", level_skill_fishing.maxXpForLevel);
 			skillInfo.addProperty("maxxp_skill_alchemy", level_skill_alchemy.maxXpForLevel);
 			skillInfo.addProperty("maxxp_skill_runecrafting", level_skill_runecrafting.maxXpForLevel);
+			skillInfo.addProperty("maxxp_skill_social2", level_skill_social.maxXpForLevel);
 
 			skillInfo.addProperty("maxxp_skill_catacombs", level_skill_catacombs.maxXpForLevel);
 
@@ -1057,6 +1089,10 @@ public class ProfileViewer {
 				Utils.getElement(profileInfo, "candy_inventory_contents.data"),
 				"Hz8IAAAAAAAAAD9iYD9kYD9kAAMAPwI/Gw0AAAA="
 			);
+			String equipment_contents_bytes = Utils.getElementAsString(
+				Utils.getElement(profileInfo, "equippment_contents.data"),
+				"Hz8IAAAAAAAAAD9iYD9kYD9kAAMAPwI/Gw0AAAA="
+			);
 
 			JsonObject inventoryInfo = new JsonObject();
 
@@ -1071,7 +1107,8 @@ public class ProfileViewer {
 				"potion_bag",
 				"inv_contents",
 				"talisman_bag",
-				"candy_inventory_contents"
+				"candy_inventory_contents",
+				"equippment_contents"
 			};
 			String[] inv_bytes = new String[]{
 				inv_armor_bytes,
@@ -1084,7 +1121,8 @@ public class ProfileViewer {
 				potion_bag_bytes,
 				inv_contents_bytes,
 				talisman_bag_bytes,
-				candy_inventory_contents_bytes
+				candy_inventory_contents_bytes,
+				equipment_contents_bytes
 			};
 			for (int i = 0; i < inv_bytes.length; i++) {
 				try {
@@ -1287,7 +1325,8 @@ public class ProfileViewer {
 				}
 			}
 			for (JsonObject current_member_info : coopMembers) {
-				if (!current_member_info.has("crafted_generators") || !current_member_info.get("crafted_generators").isJsonArray()) continue;
+				if (!current_member_info.has("crafted_generators") ||
+					!current_member_info.get("crafted_generators").isJsonArray()) continue;
 				JsonArray crafted_generators = Utils.getElement(current_member_info, "crafted_generators").getAsJsonArray();
 				for (int j = 0; j < crafted_generators.size(); j++) {
 					String unlocked = crafted_generators.get(j).getAsString();
@@ -1365,7 +1404,7 @@ public class ProfileViewer {
 		}
 
 		public PlayerStats.Stats getStats(String profileId) {
-			//if(stats.get(profileId) != null) return stats.get(profileId);
+			if (stats.get(profileId) != null) return stats.get(profileId);
 			JsonObject profileInfo = getProfileInformation(profileId);
 			if (profileInfo == null) {
 				return null;

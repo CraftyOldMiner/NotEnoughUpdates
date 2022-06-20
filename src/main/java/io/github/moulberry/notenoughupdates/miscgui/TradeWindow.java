@@ -1,9 +1,29 @@
+/*
+ * Copyright (C) 2022 NotEnoughUpdates contributors
+ *
+ * This file is part of NotEnoughUpdates.
+ *
+ * NotEnoughUpdates is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * NotEnoughUpdates is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NotEnoughUpdates. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.moulberry.notenoughupdates.miscgui;
 
 import com.google.gson.JsonObject;
 import io.github.moulberry.notenoughupdates.NotEnoughUpdates;
 import io.github.moulberry.notenoughupdates.core.config.KeybindHelper;
 import io.github.moulberry.notenoughupdates.miscfeatures.SlotLocking;
+import io.github.moulberry.notenoughupdates.mixins.AccessorGuiContainer;
 import io.github.moulberry.notenoughupdates.util.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
@@ -26,8 +46,14 @@ import org.lwjgl.opengl.GL11;
 import java.awt.*;
 import java.io.ByteArrayInputStream;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.*;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -553,8 +579,12 @@ public class TradeWindow {
 			int y = 104 + 18 * (index / 9);
 			if (index < 9) y = 180;
 
-			chest.drawSlot(new Slot(Minecraft.getMinecraft().thePlayer.inventory, index, guiLeft + x, guiTop + y));
-			//Utils.drawItemStack(stack, guiLeft+x, guiTop+y);
+			((AccessorGuiContainer) chest).doDrawSlot(new Slot(
+				Minecraft.getMinecraft().thePlayer.inventory,
+				index,
+				guiLeft + x,
+				guiTop + y
+			));
 
 			int col = 0x80ffffff;
 			if (SlotLocking.getInstance().isSlotIndexLocked(index)) {
@@ -799,7 +829,7 @@ public class TradeWindow {
 			TreeMap<Integer, Set<String>> ourTopItems = new TreeMap<>();
 			TreeMap<String, ItemStack> ourTopItemsStack = new TreeMap<>();
 			TreeMap<String, Integer> ourTopItemsCount = new TreeMap<>();
-			int ourPrice = 0;
+			double ourPrice = 0;
 			for (int i = 0; i < 16; i++) {
 				int x = i % 4;
 				int y = i / 4;
@@ -813,7 +843,7 @@ public class TradeWindow {
 			TreeMap<Integer, Set<String>> theirTopItems = new TreeMap<>();
 			TreeMap<String, ItemStack> theirTopItemsStack = new TreeMap<>();
 			TreeMap<String, Integer> theirTopItemsCount = new TreeMap<>();
-			int theirPrice = 0;
+			double theirPrice = 0;
 			for (int i = 0; i < 16; i++) {
 				int x = i % 4;
 				int y = i / 4;
